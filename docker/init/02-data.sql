@@ -1,0 +1,22 @@
+INSERT INTO USR
+(
+    LGN_ID,
+    PWD,
+    MMBR_NM,
+    MMBR_STTS_CD,
+    LGN_FL_CNT,
+    RGSTR_DT,
+    US_YN,
+    DLT_YN
+)
+VALUES
+(
+    'report_test_user',
+    'test',
+    '테스트사용자',
+    'ACTIVE',
+    0,
+    NOW(),
+    'Y',
+    'N'
+);
