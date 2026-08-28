@@ -1,0 +1,11 @@
+
+# Environment
+.env
+
+# Gradle
+.gradle/
+build/
+
+# IntelliJ / Android Studio
+.idea/
+*.iml
