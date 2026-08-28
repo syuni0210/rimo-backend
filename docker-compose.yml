@@ -1,0 +1,7 @@
+services:
+  data-api:
+    build: .
+    ports:
+      - "8084:8084"
+    env_file:
+      - .env
