@@ -37,4 +37,20 @@ public class User {
 
     @Column(name = "RGSTR_DT")
     private LocalDateTime rgstrDt = LocalDateTime.now();
+    
+    @Column(name = "US_YN")
+    private String useYn;
+
+    @Column(name = "DLT_YN")
+    private String deleteYn;
+
+    @PrePersist
+    public void prePersist() {
+         if (this.useYn == null) {
+             this.useYn = "Y";
+         }
+         if (this.deleteYn == null) {
+             this.deleteYn = "N";
+         }
+    }
 }

@@ -29,6 +29,8 @@ public class AuthService {
         user.setPwd(passwordEncoder.encode(request.getPassword())); // BCrypt 암호화
         user.setMmbrNm(request.getName());
         user.setEmail(request.getEmail());
+        user.setUseYn("Y");
+        user.setDeleteYn("N");
         userRepository.save(user);
     }
    public AuthDto.LoginResponse login(AuthDto.LoginRequest request) {
