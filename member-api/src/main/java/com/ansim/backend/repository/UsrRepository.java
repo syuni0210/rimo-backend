@@ -7,9 +7,9 @@ import java.util.Optional;
 
 public interface UsrRepository extends JpaRepository<Usr, Long> {
 
-    Optional<Usr> findByLoginIdAndUseYnAndDeleteYn(String loginId, String useYn, String deleteYn);
+    Optional<Usr> findByLoginId(String loginId);
 
-    List<Usr> findByMemberNameContainingAndUseYnAndDeleteYn(String memberName, String useYn, String deleteYn);
+    List<Usr> findByMemberNameContaining(String memberName);
 
-    boolean existsByMmbrIdAndUseYnAndDeleteYn(Long mmbrId, String useYn, String deleteYn);
+    boolean existsByMmbrId(Long mmbrId);
 }

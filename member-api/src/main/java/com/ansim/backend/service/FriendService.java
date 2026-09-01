@@ -29,10 +29,10 @@ public class FriendService {
         if (requesterId.equals(receiverId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "자기 자신에게 친구 요청을 보낼 수 없습니다.");
         }
-        if (!usrRepository.existsByMmbrIdAndUseYnAndDeleteYn(requesterId, "Y", "N")) {
+        if (!usrRepository.existsByMmbrId(requesterId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "친구 요청을 보내는 회원이 존재하지 않습니다.");
         }
-        if (!usrRepository.existsByMmbrIdAndUseYnAndDeleteYn(receiverId, "Y", "N")) {
+        if (!usrRepository.existsByMmbrId(receiverId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "친구 요청을 받을 회원이 존재하지 않습니다.");
         }
         if (friendRepository.countActiveRelationship(requesterId, receiverId) > 0) {
@@ -122,7 +122,7 @@ public class FriendService {
     }
 
     public List<Usr> getFriendList(Long memberId) {
-        if (!usrRepository.existsByMmbrIdAndUseYnAndDeleteYn(memberId, "Y", "N")) {
+        if (!usrRepository.existsByMmbrId(memberId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "회원이 존재하지 않습니다.");
         }
         List<Friend> relationships = friendRepository.findAcceptedFriends(memberId);

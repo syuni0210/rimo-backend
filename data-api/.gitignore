@@ -1,10 +1,11 @@
-
 # Environment
 .env
+.env.*
+!.env.example
 
 # Gradle
 .gradle/
-build/
+**/build/
 
 # IntelliJ / Android Studio
 .idea/
