@@ -47,6 +47,22 @@ services:
     networks:
       - rimo-network
 
+  tracking-api-server:
+    build:
+      context: ./tracking-api
+    container_name: tracking-api-server
+    environment:
+      - SERVER_PORT=8084
+      - DB_URL=jdbc:mariadb://211.46.52.166:13306/team4
+      - DB_USERNAME=team4
+      - DB_PASSWORD=Gkrtod1@
+      - SOLAPI_API_KEY=NCSB2WWDSRDFQ5OL
+      - SOLAPI_API_SECRET=KGAJWCCP8NMNNXMOQAK013LTCRFKDEK5
+      - SOLAPI_SENDER=01037269288
+      - KAKAO_REST_API_KEY=f5816278d02b2801c85fb59458782bee
+    networks:
+      - rimo-network
+
   nginx-proxy:
     image: nginx:latest
     container_name: nginx-proxy
@@ -61,7 +77,7 @@ services:
       - data-api-server
       - member-api-server
       - route-api-server
-
+      - tracking-api-server
 networks:
   rimo-network:
     driver: bridge
