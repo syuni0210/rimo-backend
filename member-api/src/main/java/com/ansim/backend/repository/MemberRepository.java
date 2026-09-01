@@ -18,7 +18,7 @@ public class MemberRepository {
                 SELECT MMBR_ID, LGN_ID, MMBR_NM, EMAIL
                 FROM USR
                 WHERE MMBR_ID = ?
-                  AND DLT_YN = 'N'
+                  AND (DLT_YN = 'N' OR DLT_YN IS NULL)
                 """;
         return jdbcTemplate.queryForObject(
                 sql,
@@ -37,7 +37,7 @@ public class MemberRepository {
                 UPDATE USR
                 SET MMBR_NM = ?, EMAIL = ?, MDFY_DT = NOW()
                 WHERE MMBR_ID = ?
-                  AND DLT_YN = 'N'
+                  AND (DLT_YN = 'N' OR DLT_YN IS NULL)
                 """;
         return jdbcTemplate.update(sql, memberName, email, memberId);
     }

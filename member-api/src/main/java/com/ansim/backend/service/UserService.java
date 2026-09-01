@@ -15,10 +15,10 @@ public class UserService {
     }
 
     public List<Usr> searchByName(String name) {
-        return usrRepository.findByMemberNameContainingAndUseYnAndDeleteYn(name, "Y", "N");
+        return usrRepository.findByMemberNameContaining(name);
     }
 
     public Usr searchByLoginId(String loginId) {
-        return usrRepository.findByLoginIdAndUseYnAndDeleteYn(loginId, "Y", "N").orElse(null);
+        return usrRepository.findByLoginId(loginId).orElse(null);
     }
 }

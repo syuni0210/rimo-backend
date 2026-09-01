@@ -21,8 +21,8 @@ public interface FriendRepository extends JpaRepository<Friend, Long> {
             Long requestMemberId, Long receiveMemberId, String deleteYn
     );
 
-    List<Friend> findByRequestMemberIdOrReceiveMemberId(
-            Long requestMemberId, Long receiveMemberId
+    List<Friend> findByRequestMemberIdOrReceiveMemberIdAndDeleteYn(
+            Long requestMemberId, Long receiveMemberId, String deleteYn
     );
 
     @Query("""
