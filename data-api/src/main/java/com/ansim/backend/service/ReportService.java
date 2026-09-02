@@ -7,6 +7,8 @@ import com.ansim.backend.dto.TopFriendDto;
 import com.ansim.backend.entity.Jrny;
 import com.ansim.backend.repository.JrnyRepository;
 import org.springframework.stereotype.Service;
+import com.ansim.backend.dto.FacilityMapDto;
+import com.ansim.backend.repository.FacilityMapRepository;
 
 import java.time.DayOfWeek;
 import java.time.Duration;
@@ -23,6 +25,8 @@ public class ReportService {
 
     private final JrnyRepository jrnyRepository;
 
+    private final FacilityMapRepository facilityMapRepository;
+
 
     // ========================================
     // 경로 코드명
@@ -38,11 +42,173 @@ public class ReportService {
 
 
     public ReportService(
-            JrnyRepository jrnyRepository
+
+            JrnyRepository jrnyRepository,
+
+            FacilityMapRepository facilityMapRepository
+
     ) {
+
         this.jrnyRepository = jrnyRepository;
+
+        this.facilityMapRepository =
+                facilityMapRepository;
     }
 
+    // ========================================
+// 안심지도 - CCTV 조회
+// ========================================
+
+    public List<FacilityMapDto> getCctvInBounds(
+
+            double swLat,
+            double swLng,
+
+            double neLat,
+            double neLng
+
+    ) {
+
+        return facilityMapRepository
+                .findCctvInBounds(
+
+                        swLat,
+                        swLng,
+
+                        neLat,
+                        neLng
+                );
+    }
+
+
+// ========================================
+// 안심지도 - 스마트 가로등 조회
+// ========================================
+
+    public List<FacilityMapDto> getSmartLightInBounds(
+
+            double swLat,
+            double swLng,
+
+            double neLat,
+            double neLng
+
+    ) {
+
+        return facilityMapRepository
+                .findSmartLightInBounds(
+
+                        swLat,
+                        swLng,
+
+                        neLat,
+                        neLng
+                );
+    }
+
+
+// ========================================
+// 안심지도 - 지킴이집 조회
+// ========================================
+
+    public List<FacilityMapDto> getSafeHouseInBounds(
+
+            double swLat,
+            double swLng,
+
+            double neLat,
+            double neLng
+
+    ) {
+
+        return facilityMapRepository
+                .findSafeHouseInBounds(
+
+                        swLat,
+                        swLng,
+
+                        neLat,
+                        neLng
+                );
+    }
+
+
+// ========================================
+// 안심지도 - 지구대 / 파출소 조회
+// ========================================
+
+    public List<FacilityMapDto> getPoliceInBounds(
+
+            double swLat,
+            double swLng,
+
+            double neLat,
+            double neLng
+
+    ) {
+
+        return facilityMapRepository
+                .findPoliceInBounds(
+
+                        swLat,
+                        swLng,
+
+                        neLat,
+                        neLng
+                );
+    }
+
+
+// ========================================
+// 안심지도 - 비상벨 조회
+// ========================================
+
+    public List<FacilityMapDto> getEmergencyBellInBounds(
+
+            double swLat,
+            double swLng,
+
+            double neLat,
+            double neLng
+
+    ) {
+
+        return facilityMapRepository
+                .findEmergencyBellInBounds(
+
+                        swLat,
+                        swLng,
+
+                        neLat,
+                        neLng
+                );
+    }
+
+
+// ========================================
+// 안심지도 - 보안등 조회
+// ========================================
+
+    public List<FacilityMapDto> getSecurityLightInBounds(
+
+            double swLat,
+            double swLng,
+
+            double neLat,
+            double neLng
+
+    ) {
+
+        return facilityMapRepository
+                .findSecurityLightInBounds(
+
+                        swLat,
+                        swLng,
+
+                        neLat,
+                        neLng
+                );
+    }
 
     // ========================================
     // 총 귀가 횟수 / 평균 소요시간
