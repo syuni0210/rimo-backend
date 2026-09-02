@@ -24,13 +24,15 @@ public class AuthDto {
     @Getter
     public static class LoginResponse {
         private String message;
-        private String token;
+        private String accessToken;
+	private String refreshToken;
 	private Long memberId;
 	private String name;
         
-        public LoginResponse(String message, String token, Long memberId, String name) {
+        public LoginResponse(String message, String accessToken, String refreshToken, Long memberId, String name) {
             this.message = message;
-            this.token = token;
+            this.accessToken = accessToken;
+	    this.refreshToken = refreshToken;
 	    this.memberId = memberId;
 	    this.name = name;
         }
