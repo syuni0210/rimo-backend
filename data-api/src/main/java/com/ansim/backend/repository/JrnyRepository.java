@@ -96,7 +96,7 @@ public interface JrnyRepository extends JpaRepository<Jrny, Long> {
                         OR
                         F.RCV_MMBR_ID = :memberId
                     )
-                    AND F.STTS_CD = 'F001'
+                    AND F.STTS_CD = 'F002'
                     AND COALESCE(F.DLT_YN, 'N') = 'N'
             ) FRIENDS
 
