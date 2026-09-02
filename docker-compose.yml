@@ -8,6 +8,8 @@ services:
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=3
+      - SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=1
     networks:
       - rimo-network
     depends_on:
@@ -22,6 +24,8 @@ services:
       - DB_URL=jdbc:mariadb://211.46.52.166:13306/team4
       - DB_USERNAME=team4
       - DB_PASSWORD=Gkrtod1@
+      - SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=3
+      - SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=1
     networks:
       - rimo-network
 
@@ -34,6 +38,8 @@ services:
       - DB_URL=jdbc:mariadb://211.46.52.166:13306/team4
       - DB_USERNAME=team4
       - DB_PASSWORD=Gkrtod1@
+      - SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=3
+      - SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=1
     networks:
       - rimo-network
 
@@ -46,6 +52,9 @@ services:
       - DB_URL=jdbc:mariadb://211.46.52.166:13306/team4
       - DB_USERNAME=team4
       - DB_PASSWORD=Gkrtod1@
+      - DATA_API_BASE_URL=http://data-api-server:8081
+      - SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=3
+      - SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=1
     networks:
       - rimo-network
 
@@ -64,6 +73,8 @@ services:
       - SOLAPI_API_SECRET=KGAJWCCP8NMNNXMOQAK013LTCRFKDEK5
       - SOLAPI_SENDER=01037269288
       - KAKAO_REST_API_KEY=f5816278d02b2801c85fb59458782bee
+      - SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=3
+      - SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=1
     networks:
       - rimo-network
     depends_on:
