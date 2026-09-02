@@ -1,18 +1,17 @@
 package com.example.rimo.service;
 
-import com.example.rimo.config.JwtUtil;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import java.util.concurrent.TimeUnit;
 import com.example.rimo.dto.AuthDto;
 import com.example.rimo.entity.User;
 import com.example.rimo.repository.UserRepository;
+import com.example.rimo.config.JwtUtil;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
+import org.springframework.data.redis.core.StringRedisTemplate;
+import java.util.concurrent.TimeUnit;
 import java.security.Key;
 import java.util.Date;
 
@@ -87,3 +86,4 @@ public class AuthService {
         );
     }
 }
+
