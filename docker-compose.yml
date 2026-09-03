@@ -3,8 +3,6 @@ services:
     build:
       context: ./auth
     container_name: auth-server
-<<<<<<< Updated upstream
-=======
     environment:
       - SERVER_PORT=8080
       - DB_URL=jdbc:mariadb://211.46.52.166:13306/team4
@@ -14,58 +12,22 @@ services:
       - REDIS_PORT=6379
       - SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=3
       - SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=1
->>>>>>> Stashed changes
     networks:
       - rimo-network
-
-  data-api-server:
-    build:
-      context: ./data-api
-    container_name: data-api-server
-    environment:
-      - SERVER_PORT=8081
-      - DB_URL=jdbc:mariadb://211.46.52.166:13306/team4
-      - DB_USERNAME=team4
-<<<<<<< Updated upstream
-      - DB_PASSWORD=Gkrtod1@
-=======
-      - DB_PASSWORD=${DB_PASSWORD}
-      - SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=3
-      - SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=1
->>>>>>> Stashed changes
-    networks:
-      - rimo-network
+    depends_on:
+      - redis
 
   member-api-server:
     build:
       context: ./member-api
     container_name: member-api-server
     environment:
-      - SERVER_PORT=8082
+      - SERVER_PORT=8081
       - DB_URL=jdbc:mariadb://211.46.52.166:13306/team4
       - DB_USERNAME=team4
-<<<<<<< Updated upstream
-      - DB_PASSWORD=Gkrtod1@
-=======
       - DB_PASSWORD=${DB_PASSWORD}
       - SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=3
       - SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=1
->>>>>>> Stashed changes
-    networks:
-      - rimo-network
-
-  route-api-server:
-    build:
-      context: ./route-api
-    container_name: route-api-server
-    env_file:
-      - ./route-api/.env
-    environment:
-      - SERVER_PORT=8083
-      - DB_URL=jdbc:mariadb://211.46.52.166:13306/team4
-      - DB_USERNAME=team4
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DATA_API_BASE_URL=http://data-api-server:8081
     networks:
       - rimo-network
 
@@ -74,16 +36,9 @@ services:
       context: ./tracking-api
     container_name: tracking-api-server
     environment:
-      - SERVER_PORT=8084
+      - SERVER_PORT=8082
       - DB_URL=jdbc:mariadb://211.46.52.166:13306/team4
       - DB_USERNAME=team4
-<<<<<<< Updated upstream
-      - DB_PASSWORD=Gkrtod1@
-      - SOLAPI_API_KEY=NCSB2WWDSRDFQ5OL
-      - SOLAPI_API_SECRET=KGAJWCCP8NMNNXMOQAK013LTCRFKDEK5
-      - SOLAPI_SENDER=01037269288
-      - KAKAO_REST_API_KEY=f5816278d02b2801c85fb59458782bee
-=======
       - DB_PASSWORD=${DB_PASSWORD}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -98,11 +53,43 @@ services:
     depends_on:
       - redis
 
+  route-api-server:
+    build:
+      context: ./route-api
+    container_name: route-api-server
+    env_file:
+      - ./route-api/.env
+    environment:
+      - SERVER_PORT=8083
+      - DB_URL=jdbc:mariadb://211.46.52.166:13306/team4
+      - DB_USERNAME=team4
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DATA_API_BASE_URL=http://data-api-server:8084
+      - SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=3
+      - SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=1
+    networks:
+      - rimo-network
+    depends_on:
+      - data-api-server
+
+  data-api-server:
+    build:
+      context: ./data-api
+    container_name: data-api-server
+    environment:
+      - SERVER_PORT=8084
+      - DB_URL=jdbc:mariadb://211.46.52.166:13306/team4
+      - DB_USERNAME=team4
+      - DB_PASSWORD=${DB_PASSWORD}
+      - SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=3
+      - SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=1
+    networks:
+      - rimo-network
+
   redis:
     image: redis:7-alpine
     container_name: rimo-redis
     restart: unless-stopped
->>>>>>> Stashed changes
     networks:
       - rimo-network
 
@@ -117,10 +104,10 @@ services:
       - rimo-network
     depends_on:
       - auth-server
-      - data-api-server
       - member-api-server
-      - route-api-server
       - tracking-api-server
+      - route-api-server
+      - data-api-server
 
 networks:
   rimo-network:
