@@ -7,6 +7,10 @@ public class AiSafeRouteRequestDto {
     private Double destinationLatitude;
     private Double destinationLongitude;
 
+    // Android에서 이미 계산한 Kakao 경로
+    private RouteCandidateRequestDto shortestCandidate;
+    private RouteCandidateRequestDto broadCandidate;
+
     public AiSafeRouteRequestDto() {
     }
 
@@ -52,5 +56,25 @@ public class AiSafeRouteRequestDto {
 
     public void setDestinationLongitude(Double destinationLongitude) {
         this.destinationLongitude = destinationLongitude;
+    }
+    public RouteCandidateRequestDto getShortestCandidate() {
+        return shortestCandidate;
+    }
+
+    public void setShortestCandidate(
+            RouteCandidateRequestDto shortestCandidate
+    ) {
+        this.shortestCandidate = shortestCandidate;
+    }
+
+
+    public RouteCandidateRequestDto getBroadCandidate() {
+        return broadCandidate;
+    }
+
+    public void setBroadCandidate(
+            RouteCandidateRequestDto broadCandidate
+    ) {
+        this.broadCandidate = broadCandidate;
     }
 }
