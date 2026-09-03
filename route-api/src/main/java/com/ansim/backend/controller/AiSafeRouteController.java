@@ -51,4 +51,28 @@ public class AiSafeRouteController {
 
         return ResponseEntity.ok(facilities);
     }
+    // ========================================
+    // 귀가 진행 중 현재 위치 주변 50m 안전시설 조회
+    //
+    // Android에서 현재 GPS 위치를 전달하면
+    // 해당 위치를 중심으로 실제 반경 50m 이내의
+    // 안전시설만 반환합니다.
+    // ========================================
+
+    @GetMapping("/facilities-near-location")
+    public ResponseEntity<List<FacilityMapDto>> findFacilitiesNearLocation(
+            @RequestParam double latitude,
+            @RequestParam double longitude
+    ) {
+
+        List<FacilityMapDto> facilities =
+                aiSafeRouteService.getFacilitiesNearLocation(
+                        latitude,
+                        longitude
+                );
+
+        return ResponseEntity.ok(
+                facilities
+        );
+    }
 }

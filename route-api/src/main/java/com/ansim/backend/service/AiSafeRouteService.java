@@ -287,6 +287,171 @@ return response;
     }
 
     // ========================================
+    // 현재 사용자 위치 주변 50m 안전시설 조회
+    //
+    // 귀가 진행 중에는 전체 경로 주변 시설이 아니라
+    // 사용자의 현재 GPS 위치를 기준으로 조회합니다.
+    //
+    // 1. 현재 위치를 중심으로 약 50m Bounding Box 조회
+    // 2. Haversine 거리 계산으로 실제 50m 이내만 필터
+    // ========================================
+
+    public List<FacilityMapDto> getFacilitiesNearLocation(
+            double latitude,
+            double longitude
+    ) {
+
+        final double maxDistanceMeter =
+                50.0;
+
+
+        // 위도 1도 ≒ 111.32km
+        double latMargin =
+                maxDistanceMeter / 111320.0;
+
+
+        // 경도는 위도에 따라 실제 거리가 달라지므로 보정
+        double lngMargin =
+                maxDistanceMeter
+                        / (
+                        111320.0
+                                * Math.cos(
+                                Math.toRadians(latitude)
+                        )
+                );
+
+
+        double swLat =
+                latitude - latMargin;
+
+        double swLng =
+                longitude - lngMargin;
+
+        double neLat =
+                latitude + latMargin;
+
+        double neLng =
+                longitude + lngMargin;
+
+
+        // ========================================
+        // data-api에서 현재 위치 주변 시설 조회
+        // ========================================
+
+        List<FacilityMapDto> cctv =
+                dataApiClient.getCctv(
+                        swLat,
+                        swLng,
+                        neLat,
+                        neLng
+                );
+
+        List<FacilityMapDto> emergencyBell =
+                dataApiClient.getEmergencyBell(
+                        swLat,
+                        swLng,
+                        neLat,
+                        neLng
+                );
+
+        List<FacilityMapDto> police =
+                dataApiClient.getPolice(
+                        swLat,
+                        swLng,
+                        neLat,
+                        neLng
+                );
+
+        List<FacilityMapDto> safeHouse =
+                dataApiClient.getSafeHouse(
+                        swLat,
+                        swLng,
+                        neLat,
+                        neLng
+                );
+
+        List<FacilityMapDto> securityLight =
+                dataApiClient.getSecurityLight(
+                        swLat,
+                        swLng,
+                        neLat,
+                        neLng
+                );
+
+        List<FacilityMapDto> smartLight =
+                dataApiClient.getSmartLight(
+                        swLat,
+                        swLng,
+                        neLat,
+                        neLng
+                );
+
+
+        // Bounding Box 안에 있더라도
+        // 원형 반경 50m 밖일 수 있으므로 실제 거리로 다시 필터합니다.
+        List<FacilityMapDto> facilities =
+                new ArrayList<>();
+
+
+        facilities.addAll(
+                filterFacilitiesNearLocation(
+                        cctv,
+                        latitude,
+                        longitude,
+                        maxDistanceMeter
+                )
+        );
+
+        facilities.addAll(
+                filterFacilitiesNearLocation(
+                        emergencyBell,
+                        latitude,
+                        longitude,
+                        maxDistanceMeter
+                )
+        );
+
+        facilities.addAll(
+                filterFacilitiesNearLocation(
+                        police,
+                        latitude,
+                        longitude,
+                        maxDistanceMeter
+                )
+        );
+
+        facilities.addAll(
+                filterFacilitiesNearLocation(
+                        safeHouse,
+                        latitude,
+                        longitude,
+                        maxDistanceMeter
+                )
+        );
+
+        facilities.addAll(
+                filterFacilitiesNearLocation(
+                        securityLight,
+                        latitude,
+                        longitude,
+                        maxDistanceMeter
+                )
+        );
+
+        facilities.addAll(
+                filterFacilitiesNearLocation(
+                        smartLight,
+                        latitude,
+                        longitude,
+                        maxDistanceMeter
+                )
+        );
+
+
+        return facilities;
+    }
+
+    // ========================================
     // 후보 경로 주변 실제 안전시설 조회
     // ========================================
 
@@ -588,6 +753,61 @@ return new SafetyFacilityResult(
         return filtered;
     }
 
+    // ========================================
+    // 현재 위치 기준 실제 반경 시설 필터
+    // ========================================
+
+    private List<FacilityMapDto> filterFacilitiesNearLocation(
+            List<FacilityMapDto> facilities,
+            double latitude,
+            double longitude,
+            double maxDistanceMeter
+    ) {
+
+        List<FacilityMapDto> filtered =
+                new ArrayList<>();
+
+
+        if (
+                facilities == null ||
+                        facilities.isEmpty()
+        ) {
+            return filtered;
+        }
+
+
+        for (FacilityMapDto facility : facilities) {
+
+            if (
+                    facility.getLat() == null ||
+                            facility.getLng() == null
+            ) {
+                continue;
+            }
+
+
+            double distance =
+                    calculateDistanceMeter(
+                            facility.getLat(),
+                            facility.getLng(),
+                            latitude,
+                            longitude
+                    );
+
+
+            if (
+                    distance <= maxDistanceMeter
+            ) {
+
+                filtered.add(
+                        facility
+                );
+            }
+        }
+
+
+        return filtered;
+    }
 
     // ========================================
     // 위경도 거리 계산
