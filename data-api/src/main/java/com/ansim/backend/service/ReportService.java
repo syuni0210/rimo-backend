@@ -36,7 +36,7 @@ public class ReportService {
             PATH_TYPE_LABELS = Map.of(
 
             "R001", "빠른길",
-            "R002", "밝은길",
+            "R002", "AI 안전경로",
             "R003", "대로변"
     );
 
