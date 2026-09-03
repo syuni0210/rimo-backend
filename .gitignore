@@ -1,13 +1,6 @@
-.env
-
 # Local environment / secrets
 .env
 **/.env
 
-# Local secrets
-.env
-**/.env
-
-# Local secrets
-.env
-**/.env
+# Local Kubernetes secrets
+k8s/secret.yaml

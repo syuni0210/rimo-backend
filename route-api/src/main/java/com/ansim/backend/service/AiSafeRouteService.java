@@ -41,30 +41,90 @@ public class AiSafeRouteService {
             AiSafeRouteRequestDto request
     ) {
 
-        // 1. 카카오 후보 경로 생성
-        RouteCandidateDto shortestCandidate =
-                createCandidate(
-                        request,
-                        "SHORTEST"
-                );
+        // ========================================
+// 1. 후보 경로 준비
+//
+// Android에서 이미 계산한 Kakao 경로가 전달되면
+// 해당 경로를 그대로 사용합니다.
+//
+// 후보 경로가 전달되지 않은 기존 요청의 경우에는
+// 이전 방식대로 Backend가 Kakao API를 호출합니다.
+// ========================================
 
-        RouteCandidateDto broadCandidate =
-                createCandidate(
-                        request,
-                        "BROAD_FIRST"
-                );
+        RouteCandidateDto shortestCandidate;
+
+        if (
+                request.getShortestCandidate() != null &&
+                        request.getShortestCandidate().getDistanceMeter() != null &&
+                        request.getShortestCandidate().getTimeSecond() != null &&
+                        request.getShortestCandidate().getPath() != null &&
+                        request.getShortestCandidate().getPath().size() >= 2
+        ) {
+
+            shortestCandidate =
+                    new RouteCandidateDto(
+                            "SHORTEST",
+                            request.getShortestCandidate().getDistanceMeter(),
+                            request.getShortestCandidate().getTimeSecond(),
+                            request.getShortestCandidate().getPath()
+                    );
+
+        } else {
+
+            // 기존 Android 요청과의 호환용 fallback
+            shortestCandidate =
+                    createCandidate(
+                            request,
+                            "SHORTEST"
+                    );
+        }
+
+
+        RouteCandidateDto broadCandidate;
+
+        if (
+                request.getBroadCandidate() != null &&
+                        request.getBroadCandidate().getDistanceMeter() != null &&
+                        request.getBroadCandidate().getTimeSecond() != null &&
+                        request.getBroadCandidate().getPath() != null &&
+                        request.getBroadCandidate().getPath().size() >= 2
+        ) {
+
+            broadCandidate =
+                    new RouteCandidateDto(
+                            "BROAD_FIRST",
+                            request.getBroadCandidate().getDistanceMeter(),
+                            request.getBroadCandidate().getTimeSecond(),
+                            request.getBroadCandidate().getPath()
+                    );
+
+        } else {
+
+            // 기존 Android 요청과의 호환용 fallback
+            broadCandidate =
+                    createCandidate(
+                            request,
+                            "BROAD_FIRST"
+                    );
+        }
 
 
         // 2. 각 후보 주변 실제 안전시설 조회
+        SafetyFacilityResult shortestFacilityResult =
+        getSafetyFacilities(
+                shortestCandidate
+        );
+
+        SafetyFacilityResult broadFacilityResult =
+        getSafetyFacilities(
+                broadCandidate
+        );
+
         SafetyFacilitySummaryDto shortestFacilities =
-                getSafetyFacilities(
-                        shortestCandidate
-                );
+        shortestFacilityResult.getSummary();
 
         SafetyFacilitySummaryDto broadFacilities =
-                getSafetyFacilities(
-                        broadCandidate
-                );
+        broadFacilityResult.getSummary();
 
 
         shortestCandidate.setFacilities(
@@ -73,6 +133,14 @@ public class AiSafeRouteService {
 
         broadCandidate.setFacilities(
                 broadFacilities
+        );
+
+        shortestCandidate.setMapFacilities(
+                shortestFacilityResult.getFacilities()
+        );
+
+        broadCandidate.setMapFacilities(
+                broadFacilityResult.getFacilities()
         );
 
 
@@ -126,6 +194,8 @@ public class AiSafeRouteService {
         SafetyFacilitySummaryDto selectedFacilities =
                 selectedCandidate.getFacilities();
 
+        List<FacilityMapDto> selectedFacilityList =
+                selectedCandidate.getMapFacilities();
 
         // ========================================
         // 6. Gemini API를 이용해 추천 이유 생성
@@ -143,7 +213,8 @@ public class AiSafeRouteService {
 
 
         // 7. 최종 AI 안전경로 응답
-        return new AiSafeRouteResponseDto(
+        AiSafeRouteResponseDto response =
+        new AiSafeRouteResponseDto(
 
                 "AI_SAFE",
 
@@ -171,15 +242,221 @@ public class AiSafeRouteService {
 
                 candidates
         );
+
+response.setFacilities(
+        selectedFacilityList
+);
+
+return response;
     }
 
+    // ========================================
+// 사용자가 실제로 선택한 경로 주변 안전시설 조회
+//
+// AI 계산이 아직 끝나지 않았는데
+// SHORTEST 또는 BROAD_FIRST를 먼저 선택한 경우 사용합니다.
+//
+// 기존 AI 안전경로에서 사용 중인
+// getSafetyFacilities()를 그대로 재사용하므로
+// 별도의 50m 계산 로직을 만들지 않습니다.
+// ========================================
+    public List<FacilityMapDto> getFacilitiesNearPath(
+            List<RoutePointDto> path
+    ) {
+
+        // 경로를 계산할 수 없는 경우
+        if (
+                path == null ||
+                        path.size() < 2
+        ) {
+            return List.of();
+        }
+
+        // 기존 시설 검색 로직이 RouteCandidateDto를 받으므로
+        // 실제 선택 경로를 임시 candidate에 넣습니다.
+        RouteCandidateDto candidate =
+                new RouteCandidateDto();
+
+        candidate.setPath(path);
+
+        // 기존 AI 경로 시설 검색 로직 재사용
+        SafetyFacilityResult result =
+                getSafetyFacilities(candidate);
+
+        return result.getFacilities();
+    }
+
+    // ========================================
+    // 현재 사용자 위치 주변 50m 안전시설 조회
+    //
+    // 귀가 진행 중에는 전체 경로 주변 시설이 아니라
+    // 사용자의 현재 GPS 위치를 기준으로 조회합니다.
+    //
+    // 1. 현재 위치를 중심으로 약 50m Bounding Box 조회
+    // 2. Haversine 거리 계산으로 실제 50m 이내만 필터
+    // ========================================
+
+    public List<FacilityMapDto> getFacilitiesNearLocation(
+            double latitude,
+            double longitude
+    ) {
+
+        final double maxDistanceMeter =
+                50.0;
+
+
+        // 위도 1도 ≒ 111.32km
+        double latMargin =
+                maxDistanceMeter / 111320.0;
+
+
+        // 경도는 위도에 따라 실제 거리가 달라지므로 보정
+        double lngMargin =
+                maxDistanceMeter
+                        / (
+                        111320.0
+                                * Math.cos(
+                                Math.toRadians(latitude)
+                        )
+                );
+
+
+        double swLat =
+                latitude - latMargin;
+
+        double swLng =
+                longitude - lngMargin;
+
+        double neLat =
+                latitude + latMargin;
+
+        double neLng =
+                longitude + lngMargin;
+
+
+        // ========================================
+        // data-api에서 현재 위치 주변 시설 조회
+        // ========================================
+
+        List<FacilityMapDto> cctv =
+                dataApiClient.getCctv(
+                        swLat,
+                        swLng,
+                        neLat,
+                        neLng
+                );
+
+        List<FacilityMapDto> emergencyBell =
+                dataApiClient.getEmergencyBell(
+                        swLat,
+                        swLng,
+                        neLat,
+                        neLng
+                );
+
+        List<FacilityMapDto> police =
+                dataApiClient.getPolice(
+                        swLat,
+                        swLng,
+                        neLat,
+                        neLng
+                );
+
+        List<FacilityMapDto> safeHouse =
+                dataApiClient.getSafeHouse(
+                        swLat,
+                        swLng,
+                        neLat,
+                        neLng
+                );
+
+        List<FacilityMapDto> securityLight =
+                dataApiClient.getSecurityLight(
+                        swLat,
+                        swLng,
+                        neLat,
+                        neLng
+                );
+
+        List<FacilityMapDto> smartLight =
+                dataApiClient.getSmartLight(
+                        swLat,
+                        swLng,
+                        neLat,
+                        neLng
+                );
+
+
+        // Bounding Box 안에 있더라도
+        // 원형 반경 50m 밖일 수 있으므로 실제 거리로 다시 필터합니다.
+        List<FacilityMapDto> facilities =
+                new ArrayList<>();
+
+
+        facilities.addAll(
+                filterFacilitiesNearLocation(
+                        cctv,
+                        latitude,
+                        longitude,
+                        maxDistanceMeter
+                )
+        );
+
+        facilities.addAll(
+                filterFacilitiesNearLocation(
+                        emergencyBell,
+                        latitude,
+                        longitude,
+                        maxDistanceMeter
+                )
+        );
+
+        facilities.addAll(
+                filterFacilitiesNearLocation(
+                        police,
+                        latitude,
+                        longitude,
+                        maxDistanceMeter
+                )
+        );
+
+        facilities.addAll(
+                filterFacilitiesNearLocation(
+                        safeHouse,
+                        latitude,
+                        longitude,
+                        maxDistanceMeter
+                )
+        );
+
+        facilities.addAll(
+                filterFacilitiesNearLocation(
+                        securityLight,
+                        latitude,
+                        longitude,
+                        maxDistanceMeter
+                )
+        );
+
+        facilities.addAll(
+                filterFacilitiesNearLocation(
+                        smartLight,
+                        latitude,
+                        longitude,
+                        maxDistanceMeter
+                )
+        );
+
+
+        return facilities;
+    }
 
     // ========================================
     // 후보 경로 주변 실제 안전시설 조회
     // ========================================
 
-    private SafetyFacilitySummaryDto getSafetyFacilities(
-            RouteCandidateDto candidate
+    private SafetyFacilityResult getSafetyFacilities(
+        RouteCandidateDto candidate
     ) {
 
         List<RoutePointDto> path =
@@ -190,14 +467,17 @@ public class AiSafeRouteService {
                 path == null ||
                 path.isEmpty()
         ) {
-            return new SafetyFacilitySummaryDto(
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0
-            );
+            return new SafetyFacilityResult(
+        new SafetyFacilitySummaryDto(
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+        ),
+        List.of()
+);
         }
 
 
@@ -245,22 +525,37 @@ public class AiSafeRouteService {
         }
 
 
-        // 약 50m 여유 영역
-        double margin =
-                0.0005;
+        // 실제 약 50m 여유 영역
+        double maxDistanceMeter =
+                50.0;
+
+        double midLat =
+                (minLat + maxLat) / 2.0;
+
+        double latMargin =
+                maxDistanceMeter / 111320.0;
+
+        double lngMargin =
+                maxDistanceMeter
+                        / (
+                                111320.0
+                                * Math.cos(
+                                        Math.toRadians(midLat)
+                                )
+                        );
 
 
         double swLat =
-                minLat - margin;
+                minLat - latMargin;
 
         double swLng =
-                minLng - margin;
+                minLng - lngMargin;
 
         double neLat =
-                maxLat + margin;
+                maxLat + latMargin;
 
         double neLng =
-                maxLng + margin;
+                maxLng + lngMargin;
 
 
         // ========================================
@@ -320,10 +615,6 @@ public class AiSafeRouteService {
         // 실제 경로에서 50m 이내 시설만 필터
         // ========================================
 
-        double maxDistanceMeter =
-                50.0;
-
-
         cctv =
                 filterFacilitiesNearPath(
                         cctv,
@@ -367,7 +658,19 @@ public class AiSafeRouteService {
                 );
 
 
-        return new SafetyFacilitySummaryDto(
+        List<FacilityMapDto> facilities =
+        new ArrayList<>();
+
+facilities.addAll(cctv);
+facilities.addAll(emergencyBell);
+facilities.addAll(police);
+facilities.addAll(safeHouse);
+facilities.addAll(securityLight);
+facilities.addAll(smartLight);
+
+
+SafetyFacilitySummaryDto summary =
+        new SafetyFacilitySummaryDto(
 
                 cctv.size(),
 
@@ -381,6 +684,12 @@ public class AiSafeRouteService {
 
                 smartLight.size()
         );
+
+
+return new SafetyFacilityResult(
+        summary,
+        facilities
+);
     }
 
 
@@ -444,6 +753,61 @@ public class AiSafeRouteService {
         return filtered;
     }
 
+    // ========================================
+    // 현재 위치 기준 실제 반경 시설 필터
+    // ========================================
+
+    private List<FacilityMapDto> filterFacilitiesNearLocation(
+            List<FacilityMapDto> facilities,
+            double latitude,
+            double longitude,
+            double maxDistanceMeter
+    ) {
+
+        List<FacilityMapDto> filtered =
+                new ArrayList<>();
+
+
+        if (
+                facilities == null ||
+                        facilities.isEmpty()
+        ) {
+            return filtered;
+        }
+
+
+        for (FacilityMapDto facility : facilities) {
+
+            if (
+                    facility.getLat() == null ||
+                            facility.getLng() == null
+            ) {
+                continue;
+            }
+
+
+            double distance =
+                    calculateDistanceMeter(
+                            facility.getLat(),
+                            facility.getLng(),
+                            latitude,
+                            longitude
+                    );
+
+
+            if (
+                    distance <= maxDistanceMeter
+            ) {
+
+                filtered.add(
+                        facility
+                );
+            }
+        }
+
+
+        return filtered;
+    }
 
     // ========================================
     // 위경도 거리 계산
@@ -707,6 +1071,38 @@ public class AiSafeRouteService {
         }
 
 
-        return routePoints;
+                return routePoints;
+    }
+
+
+    // ========================================
+    // 안전시설 조회 결과
+    // - summary: 안전점수 계산용 시설 개수
+    // - facilities: 지도 마커 표시용 실제 시설 목록
+    // ========================================
+
+    private static class SafetyFacilityResult {
+
+        private final SafetyFacilitySummaryDto summary;
+        private final List<FacilityMapDto> facilities;
+
+
+        public SafetyFacilityResult(
+                SafetyFacilitySummaryDto summary,
+                List<FacilityMapDto> facilities
+        ) {
+            this.summary = summary;
+            this.facilities = facilities;
+        }
+
+
+        public SafetyFacilitySummaryDto getSummary() {
+            return summary;
+        }
+
+
+        public List<FacilityMapDto> getFacilities() {
+            return facilities;
+        }
     }
 }

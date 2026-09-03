@@ -17,11 +17,8 @@ spring:
     properties:
       hibernate:
         format_sql: true
-<<<<<<< Updated upstream
-=======
 
   data:
     redis:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT:6379}
->>>>>>> Stashed changes
