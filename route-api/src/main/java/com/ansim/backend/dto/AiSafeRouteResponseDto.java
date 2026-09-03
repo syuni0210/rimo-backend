@@ -28,6 +28,8 @@ public class AiSafeRouteResponseDto {
 
     private List<RoutePointDto> path;
 
+    private List<FacilityMapDto> facilities;
+
     private List<RouteCandidateDto> candidates;
 
 
@@ -161,6 +163,14 @@ public class AiSafeRouteResponseDto {
 
     public void setPath(List<RoutePointDto> path) {
         this.path = path;
+    }
+
+    public List<FacilityMapDto> getFacilities() {
+    return facilities;
+    }
+
+    public void setFacilities(List<FacilityMapDto> facilities) {
+    this.facilities = facilities;
     }
 
     public List<RouteCandidateDto> getCandidates() {

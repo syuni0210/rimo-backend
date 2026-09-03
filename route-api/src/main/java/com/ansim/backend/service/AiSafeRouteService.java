@@ -41,30 +41,90 @@ public class AiSafeRouteService {
             AiSafeRouteRequestDto request
     ) {
 
-        // 1. 카카오 후보 경로 생성
-        RouteCandidateDto shortestCandidate =
-                createCandidate(
-                        request,
-                        "SHORTEST"
-                );
+        // ========================================
+// 1. 후보 경로 준비
+//
+// Android에서 이미 계산한 Kakao 경로가 전달되면
+// 해당 경로를 그대로 사용합니다.
+//
+// 후보 경로가 전달되지 않은 기존 요청의 경우에는
+// 이전 방식대로 Backend가 Kakao API를 호출합니다.
+// ========================================
 
-        RouteCandidateDto broadCandidate =
-                createCandidate(
-                        request,
-                        "BROAD_FIRST"
-                );
+        RouteCandidateDto shortestCandidate;
+
+        if (
+                request.getShortestCandidate() != null &&
+                        request.getShortestCandidate().getDistanceMeter() != null &&
+                        request.getShortestCandidate().getTimeSecond() != null &&
+                        request.getShortestCandidate().getPath() != null &&
+                        request.getShortestCandidate().getPath().size() >= 2
+        ) {
+
+            shortestCandidate =
+                    new RouteCandidateDto(
+                            "SHORTEST",
+                            request.getShortestCandidate().getDistanceMeter(),
+                            request.getShortestCandidate().getTimeSecond(),
+                            request.getShortestCandidate().getPath()
+                    );
+
+        } else {
+
+            // 기존 Android 요청과의 호환용 fallback
+            shortestCandidate =
+                    createCandidate(
+                            request,
+                            "SHORTEST"
+                    );
+        }
+
+
+        RouteCandidateDto broadCandidate;
+
+        if (
+                request.getBroadCandidate() != null &&
+                        request.getBroadCandidate().getDistanceMeter() != null &&
+                        request.getBroadCandidate().getTimeSecond() != null &&
+                        request.getBroadCandidate().getPath() != null &&
+                        request.getBroadCandidate().getPath().size() >= 2
+        ) {
+
+            broadCandidate =
+                    new RouteCandidateDto(
+                            "BROAD_FIRST",
+                            request.getBroadCandidate().getDistanceMeter(),
+                            request.getBroadCandidate().getTimeSecond(),
+                            request.getBroadCandidate().getPath()
+                    );
+
+        } else {
+
+            // 기존 Android 요청과의 호환용 fallback
+            broadCandidate =
+                    createCandidate(
+                            request,
+                            "BROAD_FIRST"
+                    );
+        }
 
 
         // 2. 각 후보 주변 실제 안전시설 조회
+        SafetyFacilityResult shortestFacilityResult =
+        getSafetyFacilities(
+                shortestCandidate
+        );
+
+        SafetyFacilityResult broadFacilityResult =
+        getSafetyFacilities(
+                broadCandidate
+        );
+
         SafetyFacilitySummaryDto shortestFacilities =
-                getSafetyFacilities(
-                        shortestCandidate
-                );
+        shortestFacilityResult.getSummary();
 
         SafetyFacilitySummaryDto broadFacilities =
-                getSafetyFacilities(
-                        broadCandidate
-                );
+        broadFacilityResult.getSummary();
 
 
         shortestCandidate.setFacilities(
@@ -73,6 +133,14 @@ public class AiSafeRouteService {
 
         broadCandidate.setFacilities(
                 broadFacilities
+        );
+
+        shortestCandidate.setMapFacilities(
+                shortestFacilityResult.getFacilities()
+        );
+
+        broadCandidate.setMapFacilities(
+                broadFacilityResult.getFacilities()
         );
 
 
@@ -126,6 +194,8 @@ public class AiSafeRouteService {
         SafetyFacilitySummaryDto selectedFacilities =
                 selectedCandidate.getFacilities();
 
+        List<FacilityMapDto> selectedFacilityList =
+                selectedCandidate.getMapFacilities();
 
         // ========================================
         // 6. Gemini API를 이용해 추천 이유 생성
@@ -143,7 +213,8 @@ public class AiSafeRouteService {
 
 
         // 7. 최종 AI 안전경로 응답
-        return new AiSafeRouteResponseDto(
+        AiSafeRouteResponseDto response =
+        new AiSafeRouteResponseDto(
 
                 "AI_SAFE",
 
@@ -171,15 +242,56 @@ public class AiSafeRouteService {
 
                 candidates
         );
+
+response.setFacilities(
+        selectedFacilityList
+);
+
+return response;
     }
 
+    // ========================================
+// 사용자가 실제로 선택한 경로 주변 안전시설 조회
+//
+// AI 계산이 아직 끝나지 않았는데
+// SHORTEST 또는 BROAD_FIRST를 먼저 선택한 경우 사용합니다.
+//
+// 기존 AI 안전경로에서 사용 중인
+// getSafetyFacilities()를 그대로 재사용하므로
+// 별도의 50m 계산 로직을 만들지 않습니다.
+// ========================================
+    public List<FacilityMapDto> getFacilitiesNearPath(
+            List<RoutePointDto> path
+    ) {
+
+        // 경로를 계산할 수 없는 경우
+        if (
+                path == null ||
+                        path.size() < 2
+        ) {
+            return List.of();
+        }
+
+        // 기존 시설 검색 로직이 RouteCandidateDto를 받으므로
+        // 실제 선택 경로를 임시 candidate에 넣습니다.
+        RouteCandidateDto candidate =
+                new RouteCandidateDto();
+
+        candidate.setPath(path);
+
+        // 기존 AI 경로 시설 검색 로직 재사용
+        SafetyFacilityResult result =
+                getSafetyFacilities(candidate);
+
+        return result.getFacilities();
+    }
 
     // ========================================
     // 후보 경로 주변 실제 안전시설 조회
     // ========================================
 
-    private SafetyFacilitySummaryDto getSafetyFacilities(
-            RouteCandidateDto candidate
+    private SafetyFacilityResult getSafetyFacilities(
+        RouteCandidateDto candidate
     ) {
 
         List<RoutePointDto> path =
@@ -190,14 +302,17 @@ public class AiSafeRouteService {
                 path == null ||
                 path.isEmpty()
         ) {
-            return new SafetyFacilitySummaryDto(
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0
-            );
+            return new SafetyFacilityResult(
+        new SafetyFacilitySummaryDto(
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+        ),
+        List.of()
+);
         }
 
 
@@ -245,22 +360,37 @@ public class AiSafeRouteService {
         }
 
 
-        // 약 50m 여유 영역
-        double margin =
-                0.0005;
+        // 실제 약 50m 여유 영역
+        double maxDistanceMeter =
+                50.0;
+
+        double midLat =
+                (minLat + maxLat) / 2.0;
+
+        double latMargin =
+                maxDistanceMeter / 111320.0;
+
+        double lngMargin =
+                maxDistanceMeter
+                        / (
+                                111320.0
+                                * Math.cos(
+                                        Math.toRadians(midLat)
+                                )
+                        );
 
 
         double swLat =
-                minLat - margin;
+                minLat - latMargin;
 
         double swLng =
-                minLng - margin;
+                minLng - lngMargin;
 
         double neLat =
-                maxLat + margin;
+                maxLat + latMargin;
 
         double neLng =
-                maxLng + margin;
+                maxLng + lngMargin;
 
 
         // ========================================
@@ -320,10 +450,6 @@ public class AiSafeRouteService {
         // 실제 경로에서 50m 이내 시설만 필터
         // ========================================
 
-        double maxDistanceMeter =
-                50.0;
-
-
         cctv =
                 filterFacilitiesNearPath(
                         cctv,
@@ -367,7 +493,19 @@ public class AiSafeRouteService {
                 );
 
 
-        return new SafetyFacilitySummaryDto(
+        List<FacilityMapDto> facilities =
+        new ArrayList<>();
+
+facilities.addAll(cctv);
+facilities.addAll(emergencyBell);
+facilities.addAll(police);
+facilities.addAll(safeHouse);
+facilities.addAll(securityLight);
+facilities.addAll(smartLight);
+
+
+SafetyFacilitySummaryDto summary =
+        new SafetyFacilitySummaryDto(
 
                 cctv.size(),
 
@@ -381,6 +519,12 @@ public class AiSafeRouteService {
 
                 smartLight.size()
         );
+
+
+return new SafetyFacilityResult(
+        summary,
+        facilities
+);
     }
 
 
@@ -707,6 +851,38 @@ public class AiSafeRouteService {
         }
 
 
-        return routePoints;
+                return routePoints;
+    }
+
+
+    // ========================================
+    // 안전시설 조회 결과
+    // - summary: 안전점수 계산용 시설 개수
+    // - facilities: 지도 마커 표시용 실제 시설 목록
+    // ========================================
+
+    private static class SafetyFacilityResult {
+
+        private final SafetyFacilitySummaryDto summary;
+        private final List<FacilityMapDto> facilities;
+
+
+        public SafetyFacilityResult(
+                SafetyFacilitySummaryDto summary,
+                List<FacilityMapDto> facilities
+        ) {
+            this.summary = summary;
+            this.facilities = facilities;
+        }
+
+
+        public SafetyFacilitySummaryDto getSummary() {
+            return summary;
+        }
+
+
+        public List<FacilityMapDto> getFacilities() {
+            return facilities;
+        }
     }
 }
