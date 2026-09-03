@@ -13,19 +13,15 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class FriendService {
 
     private final FriendRepository friendRepository;
     private final UsrRepository usrRepository;
     private final StringRedisTemplate redisTemplate;
-
-    public FriendService(FriendRepository friendRepository, UsrRepository usrRepository) {
-        this.friendRepository = friendRepository;
-        this.usrRepository = usrRepository;
-        this.redisTemplate = redisTemplate;
-    }
 
     @Transactional
     public Friend sendRequest(Long requesterId, Long receiverId) {
@@ -160,12 +156,12 @@ public class FriendService {
 
         // 2. RDB 엔티티 상태 업데이트
         // ⚠️ 주의: 이 부분이 작동하려면 Friend 엔티티 클래스 내부에 위치 공유 여부를 저장하는 필드(예: locationShareYn)와 Setter가 있어야 합니다!
-        relationship.setLocationSharing(memberId, isSharing); 
+        relationship.updateLocationShareStatus(memberId, isSharing); 
 
         // 3. Redis에 실시간 캐싱
         // Key 설계: "location:status:내회원ID:상대방회원ID" (내가 이 특정 친구에게 내 위치를 공유하는 상태)
         String redisKey = "location:status:" + memberId + ":" + friendMemberId;
-        String statusValue = isSharing ? "ON" : "OFF";
+        String statusValue = isSharing ? "Y" : "N";
         
         redisTemplate.opsForValue().set(redisKey, statusValue);
 
