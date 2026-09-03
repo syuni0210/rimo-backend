@@ -8,6 +8,7 @@ services:
       - DB_URL=jdbc:mariadb://211.46.52.166:13306/team4
       - DB_USERNAME=team4
       - DB_PASSWORD=${DB_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=3
