@@ -1,8 +1,9 @@
+// Android → Backend 전달 전용 DTO
 package com.ansim.backend.dto;
 
 import java.util.List;
 
-public class RouteCandidateDto {
+public class RouteCandidateRequestDto {
 
     private String routeMode;
 
@@ -12,24 +13,17 @@ public class RouteCandidateDto {
 
     private List<RoutePointDto> path;
 
-    private Double safetyScore;
 
-    private SafetyFacilitySummaryDto facilities;
-
-    private List<FacilityMapDto> mapFacilities;
-
-
-    public RouteCandidateDto() {
+    public RouteCandidateRequestDto() {
     }
 
 
-    public RouteCandidateDto(
+    public RouteCandidateRequestDto(
             String routeMode,
             Integer distanceMeter,
             Integer timeSecond,
             List<RoutePointDto> path
     ) {
-
         this.routeMode = routeMode;
         this.distanceMeter = distanceMeter;
         this.timeSecond = timeSecond;
@@ -45,6 +39,7 @@ public class RouteCandidateDto {
         this.routeMode = routeMode;
     }
 
+
     public Integer getDistanceMeter() {
         return distanceMeter;
     }
@@ -52,6 +47,7 @@ public class RouteCandidateDto {
     public void setDistanceMeter(Integer distanceMeter) {
         this.distanceMeter = distanceMeter;
     }
+
 
     public Integer getTimeSecond() {
         return timeSecond;
@@ -61,38 +57,12 @@ public class RouteCandidateDto {
         this.timeSecond = timeSecond;
     }
 
+
     public List<RoutePointDto> getPath() {
         return path;
     }
 
     public void setPath(List<RoutePointDto> path) {
         this.path = path;
-    }
-
-    public Double getSafetyScore() {
-        return safetyScore;
-    }
-
-    public void setSafetyScore(Double safetyScore) {
-        this.safetyScore = safetyScore;
-    }
-
-    public SafetyFacilitySummaryDto getFacilities() {
-        return facilities;
-    }
-
-    public void setFacilities(
-            SafetyFacilitySummaryDto facilities
-    ) {
-        this.facilities = facilities;
-    }
-    public List<FacilityMapDto> getMapFacilities() {
-        return mapFacilities;
-    }
-
-    public void setMapFacilities(
-            List<FacilityMapDto> mapFacilities
-    ) {
-        this.mapFacilities = mapFacilities;
     }
 }
