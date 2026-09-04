@@ -85,7 +85,13 @@ public class FriendService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "대기 중인 친구 요청이 아닙니다.");
         }
         friend.accept();
-        return friendRepository.save(friend);
+        Friend saved = friendRepository.save(friend);
+
+        // 새 친구 관계 시작 시 위치공유 Redis 상태 초기화 (예전 관계 잔재 제거)
+        redisTemplate.delete("location_share:" + friend.getRequestMemberId() + ":" + friend.getReceiveMemberId());
+        redisTemplate.delete("location_share:" + friend.getReceiveMemberId() + ":" + friend.getRequestMemberId());
+
+        return saved;
     }
 
     @Transactional
@@ -147,6 +153,11 @@ public class FriendService {
         Friend relationship = friendRepository.findAcceptedRelationship(memberId, friendMemberId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "친구 관계를 찾을 수 없습니다."));
         relationship.delete();
+
+        // 친구 삭제 시 위치공유 Redis 상태도 함께 초기화
+        redisTemplate.delete("location_share:" + memberId + ":" + friendMemberId);
+        redisTemplate.delete("location_share:" + friendMemberId + ":" + memberId);
+
         return friendRepository.save(relationship);
     }
 
