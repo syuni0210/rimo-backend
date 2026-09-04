@@ -40,6 +40,8 @@ services:
       - DB_PASSWORD=Gkrtod1@
       - SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=3
       - SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=1
+      - REDIS_HOST=rimo-redis
+      - REDIS_PORT=6379
     networks:
       - rimo-network
 
@@ -55,6 +57,7 @@ services:
       - DB_USERNAME=team4
       - DB_PASSWORD=Gkrtod1@
       - DATA_API_BASE_URL=http://data-api-server:8081
+      - KAKAO_REST_API_KEY=f5816278d02b2801c85fb59458782bee
       - SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=3
       - SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=1
     networks:
@@ -69,7 +72,7 @@ services:
       - DB_URL=jdbc:mariadb://211.46.52.166:13306/team4
       - DB_USERNAME=team4
       - DB_PASSWORD=Gkrtod1@
-      - REDIS_HOST=redis
+      - REDIS_HOST=rimo-redis
       - REDIS_PORT=6379
       - SOLAPI_API_KEY=NCSB2WWDSRDFQ5OL
       - SOLAPI_API_SECRET=KGAJWCCP8NMNNXMOQAK013LTCRFKDEK5

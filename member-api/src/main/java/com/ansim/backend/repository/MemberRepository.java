@@ -41,4 +41,18 @@ public class MemberRepository {
                 """;
         return jdbcTemplate.update(sql, memberName, email, memberId);
     }
+    public String findMemberNameById(Long memberId) {
+        String sql = """
+            SELECT MMBR_NM 
+            FROM USR 
+            WHERE MMBR_ID = ? 
+              AND (DLT_YN = 'N' OR DLT_YN IS NULL)
+        """;
+        try {
+            return jdbcTemplate.queryForObject(sql, String.class, memberId);
+        } catch (Exception e) {
+            return "알 수 없음";
+        }
 }
+}
+
