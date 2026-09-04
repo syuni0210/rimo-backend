@@ -1,11 +1,14 @@
 package com.ansim.backend.controller;
 
 import com.ansim.backend.dto.FriendLocationResponse;
+import com.ansim.backend.dto.EmergencyPopupResponse;
 import com.ansim.backend.service.TrackingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
+
 import com.ansim.backend.dto.SharingFriendResponse; // DTO 패키지 경로에 맞게 확인
 
 @RestController
@@ -19,7 +22,6 @@ public class TrackingController {
     public ResponseEntity<FriendLocationResponse> getFriendLocation(
             @PathVariable Long friendId,
             @RequestParam Long requesterId) {
-        
         FriendLocationResponse response = trackingService.getFriendLocation(requesterId, friendId);
         return ResponseEntity.ok(response);
     }
@@ -28,7 +30,6 @@ public class TrackingController {
     @GetMapping("/sharing-friends")
     public ResponseEntity<List<SharingFriendResponse>> getSharingFriendsLocations(
             @RequestParam("requesterId") Long requesterId) {
-        
         List<SharingFriendResponse> response = trackingService.getSharingFriendsLocations(requesterId);
         return ResponseEntity.ok(response);
     }
@@ -36,12 +37,41 @@ public class TrackingController {
     // ========================================
     // 내가 위치를 공유 중인 친구 수 조회
     // ========================================
-
     @GetMapping("/sharing-count")
     public ResponseEntity<Integer> getSharingCount(
             @RequestParam("memberId") Long memberId) {
-
         int count = trackingService.getSharingCount(memberId);
         return ResponseEntity.ok(count);
+    }
+
+    // ========================================
+    // 현재 사용자에게 대기 중인 긴급 팝업 조회
+    // ========================================
+    @GetMapping("/emergency/pending")
+    public ResponseEntity<EmergencyPopupResponse> getPendingEmergencyPopup(
+            @RequestParam("memberId") Long memberId
+    ) {
+        EmergencyPopupResponse response =
+                trackingService.getPendingEmergencyPopup(
+                        memberId
+                );
+        return ResponseEntity.ok(
+                response
+        );
+    }
+
+    // ========================================
+    // 긴급 팝업 확인
+    // ========================================
+    @PostMapping("/emergency/{emergencyId}/ack")
+    public ResponseEntity<Void> acknowledgeEmergencyPopup(
+            @PathVariable Long emergencyId,
+            @RequestParam("memberId") Long memberId
+    ) {
+        trackingService.acknowledgeEmergencyPopup(
+                memberId,
+                emergencyId
+        );
+        return ResponseEntity.ok().build();
     }
 }
