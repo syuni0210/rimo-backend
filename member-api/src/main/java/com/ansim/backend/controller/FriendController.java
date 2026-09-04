@@ -8,6 +8,8 @@ import com.ansim.backend.service.FriendService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import com.ansim.backend.dto.FriendListItemDto;
+
 
 @RestController
 @RequestMapping("/api/friends")
@@ -77,8 +79,8 @@ public class FriendController {
     }
 
     @GetMapping
-    public List<Usr> getFriendList(@RequestParam Long memberId) {
-        return friendService.getFriendList(memberId);
+    public List<FriendListItemDto> getFriendList(@RequestParam Long memberId) {
+    return friendService.getFriendListWithSharing(memberId);
     }
 
     @DeleteMapping

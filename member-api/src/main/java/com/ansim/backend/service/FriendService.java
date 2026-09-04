@@ -14,6 +14,8 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import com.ansim.backend.dto.FriendListItemDto;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -160,11 +162,30 @@ public class FriendService {
 
         // 3. Redis에 실시간 캐싱
         // Key 설계: "location:status:내회원ID:상대방회원ID" (내가 이 특정 친구에게 내 위치를 공유하는 상태)
-        String redisKey = "location:status:" + memberId + ":" + friendMemberId;
+        String redisKey = "location_share:" + memberId + ":" + friendMemberId;
         String statusValue = isSharing ? "Y" : "N";
         
         redisTemplate.opsForValue().set(redisKey, statusValue);
 
         return friendRepository.save(relationship);
     }
+public List<FriendListItemDto> getFriendListWithSharing(Long memberId) {
+
+    List<Usr> friends = getFriendList(memberId);
+
+    return friends.stream()
+            .map(friend -> {
+                String redisKey = "location_share:" + memberId + ":" + friend.getMmbrId();
+                String value = redisTemplate.opsForValue().get(redisKey);
+                boolean isSharing = "Y".equals(value);
+
+                return new FriendListItemDto(
+                        friend.getMmbrId(),
+                        friend.getMemberName(),
+                        friend.getLoginId(),
+                        isSharing
+                );
+            })
+            .collect(Collectors.toList());
+}
 }
