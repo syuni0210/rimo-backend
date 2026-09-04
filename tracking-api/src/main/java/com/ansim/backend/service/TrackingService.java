@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import com.ansim.backend.dto.SharingFriendResponse;
+import com.ansim.backend.dto.EmergencyPopupResponse;
 import com.ansim.backend.repository.TrackingRepository;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,7 +46,72 @@ public class TrackingService {
         }
     }
 
+    // 현재 사용자에게 대기 중인 긴급 팝업 조회
+    public EmergencyPopupResponse getPendingEmergencyPopup(Long memberId) {
 
+        Set<String> keys = redisTemplate.keys("emergency_popup:" + memberId + ":*");
+
+        if (keys == null || keys.isEmpty()) {
+            return new EmergencyPopupResponse(false, null, null, null);
+        }
+
+        String latestKey = null;
+        Long latestEmergencyId = null;
+
+        for (String key : keys) {
+            String[] parts = key.split(":");
+
+            if (parts.length != 3) {
+                continue;
+            }
+
+            try {
+                Long emergencyId = Long.parseLong(parts[2]);
+
+                if (latestEmergencyId == null || emergencyId > latestEmergencyId) {
+                    latestEmergencyId = emergencyId;
+                    latestKey = key;
+                }
+            } catch (NumberFormatException ignored) {
+            }
+        }
+
+        if (latestKey == null || latestEmergencyId == null) {
+            return new EmergencyPopupResponse(false, null, null, null);
+        }
+
+        Object senderIdObj = redisTemplate.opsForHash().get(latestKey, "senderId");
+        Object senderNameObj = redisTemplate.opsForHash().get(latestKey, "senderName");
+
+        if (senderIdObj == null || senderNameObj == null) {
+            return new EmergencyPopupResponse(false, null, null, null);
+        }
+
+        try {
+            Long senderId = Long.parseLong(senderIdObj.toString());
+            String senderName = senderNameObj.toString();
+
+            return new EmergencyPopupResponse(
+                    true,
+                    latestEmergencyId,
+                    senderId,
+                    senderName
+            );
+
+        } catch (NumberFormatException e) {
+            return new EmergencyPopupResponse(false, null, null, null);
+        }
+    }
+
+    // 긴급 팝업 확인 처리
+    public boolean acknowledgeEmergencyPopup(Long memberId, Long emergencyId) {
+
+        String popupKey = "emergency_popup:" + memberId + ":" + emergencyId;
+
+        Boolean deleted = redisTemplate.delete(popupKey);
+
+        return Boolean.TRUE.equals(deleted);
+    }
 
 // ... 기존 getFriendLocation 메서드 유지 ...
 
