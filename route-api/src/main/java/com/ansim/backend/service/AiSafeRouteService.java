@@ -14,6 +14,10 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.function.Supplier;
 
 @Service
 public class AiSafeRouteService {
@@ -22,6 +26,30 @@ public class AiSafeRouteService {
     private final DataApiClient dataApiClient;
     private final SafetyScoreCalculator safetyScoreCalculator;
     private final GeminiRecommendationClient geminiRecommendationClient;
+
+    // data-api 동시 호출 수를 서비스 전체에서 최대 3개로 제한합니다.
+    // 고정 크기 전용 스레드 풀을 사용해 다른 공용 비동기 작업과 간섭하지 않습니다.
+    private final ExecutorService facilityApiExecutor =
+            Executors.newFixedThreadPool(
+                    3,
+                    runnable -> {
+                        Thread thread =
+                                new Thread(
+                                        runnable
+                                );
+
+                        thread.setName(
+                                "facility-api-worker"
+                        );
+
+                        // 애플리케이션 종료를 막지 않도록 daemon thread로 실행합니다.
+                        thread.setDaemon(
+                                true
+                        );
+
+                        return thread;
+                    }
+            );
 
 
     public AiSafeRouteService(
@@ -198,18 +226,18 @@ public class AiSafeRouteService {
                 selectedCandidate.getMapFacilities();
 
         // ========================================
-        // 6. Gemini API를 이용해 추천 이유 생성
+        // 6. 추천 이유 즉시 생성
         //
-        // 최종 경로 선택 자체는 서버의 안전점수로 결정하고
-        // Gemini는 선택된 이유를 사용자에게 설명
+        // 최종 경로 선택은 기존과 동일하게 안전점수로 결정합니다.
+        // 응답 지연을 만들던 Gemini 네트워크 호출은 필수 경로에서 제외하고,
+        // 이미 계산된 실제 시설 개수와 안전점수로 추천 문장을 즉시 만듭니다.
+        // recommendationReason 필드는 그대로 유지되므로 Android 응답 구조는 바뀌지 않습니다.
         // ========================================
 
         String recommendationReason =
-                geminiRecommendationClient
-                        .generateRecommendationReason(
-                                selectedCandidate,
-                                candidates
-                        );
+                createImmediateRecommendationReason(
+                        selectedCandidate
+                );
 
 
         // 7. 최종 AI 안전경로 응답
@@ -336,55 +364,36 @@ return response;
 
         // ========================================
         // data-api에서 현재 위치 주변 시설 조회
+        //
+        // 기존 6개 순차 호출을 최대 3개 동시 호출로 변경합니다.
+        // 조회 대상, Bounding Box, 50m 필터링 로직은 그대로 유지합니다.
         // ========================================
 
-        List<FacilityMapDto> cctv =
-                dataApiClient.getCctv(
+        FacilityLists facilityLists =
+                fetchFacilitiesInParallel(
                         swLat,
                         swLng,
                         neLat,
                         neLng
                 );
+
+        List<FacilityMapDto> cctv =
+                facilityLists.getCctv();
 
         List<FacilityMapDto> emergencyBell =
-                dataApiClient.getEmergencyBell(
-                        swLat,
-                        swLng,
-                        neLat,
-                        neLng
-                );
+                facilityLists.getEmergencyBell();
 
         List<FacilityMapDto> police =
-                dataApiClient.getPolice(
-                        swLat,
-                        swLng,
-                        neLat,
-                        neLng
-                );
+                facilityLists.getPolice();
 
         List<FacilityMapDto> safeHouse =
-                dataApiClient.getSafeHouse(
-                        swLat,
-                        swLng,
-                        neLat,
-                        neLng
-                );
+                facilityLists.getSafeHouse();
 
         List<FacilityMapDto> securityLight =
-                dataApiClient.getSecurityLight(
-                        swLat,
-                        swLng,
-                        neLat,
-                        neLng
-                );
+                facilityLists.getSecurityLight();
 
         List<FacilityMapDto> smartLight =
-                dataApiClient.getSmartLight(
-                        swLat,
-                        swLng,
-                        neLat,
-                        neLng
-                );
+                facilityLists.getSmartLight();
 
 
         // Bounding Box 안에 있더라도
@@ -560,55 +569,36 @@ return response;
 
         // ========================================
         // data-api에서 시설 조회
+        //
+        // 기존 6개 순차 호출을 최대 3개 동시 호출로 변경합니다.
+        // 시설 종류와 경로 50m 필터링 방식은 그대로 유지합니다.
         // ========================================
 
-        List<FacilityMapDto> cctv =
-                dataApiClient.getCctv(
+        FacilityLists facilityLists =
+                fetchFacilitiesInParallel(
                         swLat,
                         swLng,
                         neLat,
                         neLng
                 );
+
+        List<FacilityMapDto> cctv =
+                facilityLists.getCctv();
 
         List<FacilityMapDto> emergencyBell =
-                dataApiClient.getEmergencyBell(
-                        swLat,
-                        swLng,
-                        neLat,
-                        neLng
-                );
+                facilityLists.getEmergencyBell();
 
         List<FacilityMapDto> police =
-                dataApiClient.getPolice(
-                        swLat,
-                        swLng,
-                        neLat,
-                        neLng
-                );
+                facilityLists.getPolice();
 
         List<FacilityMapDto> safeHouse =
-                dataApiClient.getSafeHouse(
-                        swLat,
-                        swLng,
-                        neLat,
-                        neLng
-                );
+                facilityLists.getSafeHouse();
 
         List<FacilityMapDto> securityLight =
-                dataApiClient.getSecurityLight(
-                        swLat,
-                        swLng,
-                        neLat,
-                        neLng
-                );
+                facilityLists.getSecurityLight();
 
         List<FacilityMapDto> smartLight =
-                dataApiClient.getSmartLight(
-                        swLat,
-                        swLng,
-                        neLat,
-                        neLng
-                );
+                facilityLists.getSmartLight();
 
 
         // ========================================
@@ -690,6 +680,148 @@ return new SafetyFacilityResult(
         summary,
         facilities
 );
+    }
+
+
+    // ========================================
+    // 안전시설 6종 병렬 조회
+    //
+    // CompletableFuture와 크기 3의 전용 Executor를 사용합니다.
+    // 따라서 실제 data-api 동시 호출은 서비스 전체에서 최대 3개입니다.
+    // AI 경로 계산, 경로 주변 시설 표시,
+    // 현재 위치 주변 시설 표시가 동시에 호출되어도 과도한 동시 요청을 막습니다.
+    // ========================================
+
+    private FacilityLists fetchFacilitiesInParallel(
+            double swLat,
+            double swLng,
+            double neLat,
+            double neLng
+    ) {
+
+        CompletableFuture<List<FacilityMapDto>> cctvFuture =
+                supplyFacilityAsync(
+                        () ->
+                                dataApiClient.getCctv(
+                                        swLat,
+                                        swLng,
+                                        neLat,
+                                        neLng
+                                )
+                );
+
+        CompletableFuture<List<FacilityMapDto>> emergencyBellFuture =
+                supplyFacilityAsync(
+                        () ->
+                                dataApiClient.getEmergencyBell(
+                                        swLat,
+                                        swLng,
+                                        neLat,
+                                        neLng
+                                )
+                );
+
+        CompletableFuture<List<FacilityMapDto>> policeFuture =
+                supplyFacilityAsync(
+                        () ->
+                                dataApiClient.getPolice(
+                                        swLat,
+                                        swLng,
+                                        neLat,
+                                        neLng
+                                )
+                );
+
+        CompletableFuture<List<FacilityMapDto>> safeHouseFuture =
+                supplyFacilityAsync(
+                        () ->
+                                dataApiClient.getSafeHouse(
+                                        swLat,
+                                        swLng,
+                                        neLat,
+                                        neLng
+                                )
+                );
+
+        CompletableFuture<List<FacilityMapDto>> securityLightFuture =
+                supplyFacilityAsync(
+                        () ->
+                                dataApiClient.getSecurityLight(
+                                        swLat,
+                                        swLng,
+                                        neLat,
+                                        neLng
+                                )
+                );
+
+        CompletableFuture<List<FacilityMapDto>> smartLightFuture =
+                supplyFacilityAsync(
+                        () ->
+                                dataApiClient.getSmartLight(
+                                        swLat,
+                                        swLng,
+                                        neLat,
+                                        neLng
+                                )
+                );
+
+        CompletableFuture.allOf(
+                cctvFuture,
+                emergencyBellFuture,
+                policeFuture,
+                safeHouseFuture,
+                securityLightFuture,
+                smartLightFuture
+        ).join();
+
+        return new FacilityLists(
+                cctvFuture.join(),
+                emergencyBellFuture.join(),
+                policeFuture.join(),
+                safeHouseFuture.join(),
+                securityLightFuture.join(),
+                smartLightFuture.join()
+        );
+    }
+
+
+    private <T> CompletableFuture<T> supplyFacilityAsync(
+            Supplier<T> supplier
+    ) {
+
+        return CompletableFuture.supplyAsync(
+                supplier,
+                facilityApiExecutor
+        );
+    }
+
+
+    // ========================================
+    // Gemini 대기 없이 즉시 생성하는 추천 이유
+    //
+    // 기존 recommendationReason 응답 필드는 유지하고,
+    // 실제 선택 경로의 시설 개수와 안전점수만 사용합니다.
+    // ========================================
+
+    private String createImmediateRecommendationReason(
+            RouteCandidateDto selectedCandidate
+    ) {
+
+        SafetyFacilitySummaryDto facility =
+                selectedCandidate.getFacilities();
+
+        return String.format(
+                "경로 주변 50m 이내에 CCTV %d개, 비상벨 %d개, 경찰시설 %d개, "
+                        + "안심지킴이집 %d개, 보안등 %d개, 스마트가로등 %d개가 확인되어 "
+                        + "안전점수 %.1f점으로 선택된 경로입니다.",
+                facility.getCctvCount(),
+                facility.getEmergencyBellCount(),
+                facility.getPoliceCount(),
+                facility.getSafeHouseCount(),
+                facility.getSecurityLightCount(),
+                facility.getSmartLightCount(),
+                selectedCandidate.getSafetyScore()
+        );
     }
 
 
@@ -1072,6 +1204,68 @@ return new SafetyFacilityResult(
 
 
                 return routePoints;
+    }
+
+
+    // ========================================
+    // data-api 6종 조회 결과 묶음
+    // ========================================
+
+    private static class FacilityLists {
+
+        private final List<FacilityMapDto> cctv;
+        private final List<FacilityMapDto> emergencyBell;
+        private final List<FacilityMapDto> police;
+        private final List<FacilityMapDto> safeHouse;
+        private final List<FacilityMapDto> securityLight;
+        private final List<FacilityMapDto> smartLight;
+
+
+        public FacilityLists(
+                List<FacilityMapDto> cctv,
+                List<FacilityMapDto> emergencyBell,
+                List<FacilityMapDto> police,
+                List<FacilityMapDto> safeHouse,
+                List<FacilityMapDto> securityLight,
+                List<FacilityMapDto> smartLight
+        ) {
+            this.cctv = cctv;
+            this.emergencyBell = emergencyBell;
+            this.police = police;
+            this.safeHouse = safeHouse;
+            this.securityLight = securityLight;
+            this.smartLight = smartLight;
+        }
+
+
+        public List<FacilityMapDto> getCctv() {
+            return cctv;
+        }
+
+
+        public List<FacilityMapDto> getEmergencyBell() {
+            return emergencyBell;
+        }
+
+
+        public List<FacilityMapDto> getPolice() {
+            return police;
+        }
+
+
+        public List<FacilityMapDto> getSafeHouse() {
+            return safeHouse;
+        }
+
+
+        public List<FacilityMapDto> getSecurityLight() {
+            return securityLight;
+        }
+
+
+        public List<FacilityMapDto> getSmartLight() {
+            return smartLight;
+        }
     }
 
 
