@@ -27,10 +27,14 @@ services:
       - DB_URL=jdbc:mariadb://211.46.52.166:13306/team4
       - DB_USERNAME=team4
       - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=3
       - SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=1
     networks:
       - rimo-network
+    depends_on:
+      - redis
 
   tracking-api-server:
     build:
@@ -66,6 +70,7 @@ services:
       - DB_USERNAME=team4
       - DB_PASSWORD=${DB_PASSWORD}
       - DATA_API_BASE_URL=http://data-api-server:8084
+      - KAKAO_REST_API_KEY=${KAKAO_REST_API_KEY}
       - SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=3
       - SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=1
     networks:

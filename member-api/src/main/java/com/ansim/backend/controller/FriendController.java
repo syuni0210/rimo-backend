@@ -8,6 +8,8 @@ import com.ansim.backend.service.FriendService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import com.ansim.backend.dto.FriendListItemDto;
+
 
 @RestController
 @RequestMapping("/api/friends")
@@ -66,9 +68,19 @@ public class FriendController {
         return friendService.cancelRequest(friendId, memberId);
     }
 
+    // 위치 공유 상태 변경 API (추가)
+    @PatchMapping("/{friendMemberId}/location-sharing")
+    public Friend toggleLocationSharing(
+            @PathVariable Long friendMemberId,
+            @RequestParam Long memberId,
+            @RequestParam boolean isSharing
+    ) {
+        return friendService.toggleLocationSharing(memberId, friendMemberId, isSharing);
+    }
+
     @GetMapping
-    public List<Usr> getFriendList(@RequestParam Long memberId) {
-        return friendService.getFriendList(memberId);
+    public List<FriendListItemDto> getFriendList(@RequestParam Long memberId) {
+    return friendService.getFriendListWithSharing(memberId);
     }
 
     @DeleteMapping
