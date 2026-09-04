@@ -49,7 +49,7 @@ public class TrackingService {
 
 // ... 기존 getFriendLocation 메서드 유지 ...
 
-    public List<SharingFriendResponse> getSharingFriendsLocations(Long requesterId) {
+     public List<SharingFriendResponse> getSharingFriendsLocations(Long requesterId) {
         List<SharingFriendResponse> result = new ArrayList<>();
         
         Set<String> keys = redisTemplate.keys("location_share:*:" + requesterId);
@@ -85,6 +85,31 @@ public class TrackingService {
             }
         }
         return result;
-    }
+     }
+
+     // ========================================
+     // 내가 위치를 공유 중인 친구 수 조회
+     // (안심경로 화면 - "공유 대상 N명" 표시용)
+     // ========================================
+
+     public int getSharingCount(Long memberId) {
+
+         Set<String> keys = redisTemplate.keys("location_share:" + memberId + ":*");
+
+         if (keys == null || keys.isEmpty()) {
+             return 0;
+         }
+
+         int count = 0;
+
+         for (String key : keys) {
+             String isSharing = redisTemplate.opsForValue().get(key);
+             if ("Y".equals(isSharing)) {
+                 count++;
+             }
+         }
+
+         return count;
+     }
 }
 

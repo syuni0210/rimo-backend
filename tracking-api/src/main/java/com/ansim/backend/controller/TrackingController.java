@@ -24,12 +24,24 @@ public class TrackingController {
         return ResponseEntity.ok(response);
     }
 
-// 위치 공유가 켜진 모든 친구의 위치 일괄 조회
+    // 위치 공유가 켜진 모든 친구의 위치 일괄 조회
     @GetMapping("/sharing-friends")
     public ResponseEntity<List<SharingFriendResponse>> getSharingFriendsLocations(
             @RequestParam("requesterId") Long requesterId) {
         
         List<SharingFriendResponse> response = trackingService.getSharingFriendsLocations(requesterId);
         return ResponseEntity.ok(response);
+    }
+
+    // ========================================
+    // 내가 위치를 공유 중인 친구 수 조회
+    // ========================================
+
+    @GetMapping("/sharing-count")
+    public ResponseEntity<Integer> getSharingCount(
+            @RequestParam("memberId") Long memberId) {
+
+        int count = trackingService.getSharingCount(memberId);
+        return ResponseEntity.ok(count);
     }
 }
