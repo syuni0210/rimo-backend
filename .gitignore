@@ -4,3 +4,4 @@
 
 # Local Kubernetes secrets
 k8s/secret.yaml
+*.bak_*
