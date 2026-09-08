@@ -10,7 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/auth")
+@RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
@@ -60,5 +60,14 @@ public class AuthController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("토큰 재발급 실패: " + e.getMessage());
         }
+    }
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(@RequestBody AuthDto.LogoutRequest request) {
+        
+        // 1. 클라이언트(안드로이드)가 보낸 userId를 서비스로 전달하여 Redis 토큰 삭제
+        authService.logout(request.getUserId());
+        
+        // 2. 성공적으로 삭제되면 200 OK 응답 반환
+        return ResponseEntity.ok("로그아웃이 성공적으로 처리되었습니다.");
     }
 }
