@@ -48,4 +48,9 @@ public class AuthDto {
             this.message = message;
         }
     }
+    @Getter
+    @Setter
+    public static class LogoutRequest {
+        private String userId;
+    }
 }

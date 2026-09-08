@@ -32,16 +32,21 @@ dependencies {
     // MariaDB Driver
     implementation 'org.mariadb.jdbc:mariadb-java-client'
     
+    // Actuator
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
     // Lombok
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
     // Spring Security (비밀번호 암호화용)
     implementation 'org.springframework.boot:spring-boot-starter-security'
+
     // JWT 토큰 처리용
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+
     // Redis 통신용
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 

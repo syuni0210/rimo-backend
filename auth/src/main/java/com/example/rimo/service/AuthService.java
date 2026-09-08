@@ -56,9 +56,12 @@ public class AuthService {
         );
     }
     public AuthDto.LoginResponse refreshToken(String refreshToken) {
+        if (!jwtUtil.validateToken(refreshToken)) {
+            throw new IllegalArgumentException("만료되었거나 위조된 Refresh Token 입니다.");
+        }
+
         // 1. 토큰에서 사용자 아이디(userId) 추출
         String userId = jwtUtil.getUserIdFromToken(refreshToken);
-        
         User user = userRepository.findByLgnId(userId)
             .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
@@ -84,6 +87,13 @@ public class AuthService {
             user.getMmbrId(),
             user.getMmbrNm()
         );
+    }
+    public void logout(String userId) {
+        User user = userRepository.findByLgnId(userId)
+            .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        String redisKey = "auth:refresh:" + user.getMmbrId();
+        redisTemplate.delete(redisKey); // Redis에서 토큰 즉시 삭제
     }
 }
 
