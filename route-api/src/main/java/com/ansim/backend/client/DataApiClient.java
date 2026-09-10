@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 import java.util.List;
+import io.micrometer.core.annotation.Timed;
 
 @Component
 public class DataApiClient {
@@ -25,7 +26,7 @@ public class DataApiClient {
                         .build();
     }
 
-
+    @Timed(value = "data.api.facility.duration", description = "안전시설 조회 API 호출 시간")
     public List<FacilityMapDto> getCctv(
             double swLat,
             double swLng,
@@ -42,7 +43,7 @@ public class DataApiClient {
         );
     }
 
-
+    @Timed(value = "data.api.facility.duration", description = "안전시설 조회 API 호출 시간")
     public List<FacilityMapDto> getEmergencyBell(
             double swLat,
             double swLng,
@@ -59,7 +60,7 @@ public class DataApiClient {
         );
     }
 
-
+    @Timed(value = "data.api.facility.duration", description = "안전시설 조회 API 호출 시간")
     public List<FacilityMapDto> getPolice(
             double swLat,
             double swLng,
@@ -76,7 +77,7 @@ public class DataApiClient {
         );
     }
 
-
+    @Timed(value = "data.api.facility.duration", description = "안전시설 조회 API 호출 시간")
     public List<FacilityMapDto> getSafeHouse(
             double swLat,
             double swLng,
@@ -93,7 +94,7 @@ public class DataApiClient {
         );
     }
 
-
+    @Timed(value = "data.api.facility.duration", description = "안전시설 조회 API 호출 시간")
     public List<FacilityMapDto> getSecurityLight(
             double swLat,
             double swLng,
@@ -110,7 +111,7 @@ public class DataApiClient {
         );
     }
 
-
+    @Timed(value = "data.api.facility.duration", description = "안전시설 조회 API 호출 시간")
     public List<FacilityMapDto> getSmartLight(
             double swLat,
             double swLng,
@@ -126,7 +127,6 @@ public class DataApiClient {
                 neLng
         );
     }
-
 
     private List<FacilityMapDto> getFacilities(
             String path,
