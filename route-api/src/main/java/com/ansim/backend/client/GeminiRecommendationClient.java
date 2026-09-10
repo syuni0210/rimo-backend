@@ -8,6 +8,7 @@ import org.springframework.web.client.RestClient;
 
 import java.util.List;
 import java.util.Map;
+import io.micrometer.core.annotation.Timed;
 
 @Component
 public class GeminiRecommendationClient {
@@ -28,7 +29,7 @@ public class GeminiRecommendationClient {
         this.apiKey = apiKey;
         this.model = model;
     }
-
+    @Timed(value = "gemini.recommendation.duration", description = "Gemini AI 추천 문구 생성 시간")
     public String generateRecommendationReason(
             RouteCandidateDto selectedCandidate,
             List<RouteCandidateDto> candidates

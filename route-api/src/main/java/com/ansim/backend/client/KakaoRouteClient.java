@@ -4,6 +4,7 @@ import com.ansim.backend.dto.KakaoWalkingRouteResponseDto;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import io.micrometer.core.annotation.Timed;
 
 @Component
 public class KakaoRouteClient {
@@ -30,7 +31,7 @@ public class KakaoRouteClient {
                 restApiKey;
     }
 
-
+    @Timed(value = "kakao.route.api.duration", description = "카카오 도보경로 API 호출 시간")
     public KakaoWalkingRouteResponseDto getWalkingRoute(
 
             Double startLatitude,
