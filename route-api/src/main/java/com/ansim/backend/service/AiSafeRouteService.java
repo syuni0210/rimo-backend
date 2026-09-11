@@ -226,17 +226,18 @@ public class AiSafeRouteService {
                 selectedCandidate.getMapFacilities();
 
         // ========================================
-        // 6. 추천 이유 즉시 생성
+        // 6. Gemini 추천 이유 생성
         //
-        // 최종 경로 선택은 기존과 동일하게 안전점수로 결정합니다.
-        // 응답 지연을 만들던 Gemini 네트워크 호출은 필수 경로에서 제외하고,
-        // 이미 계산된 실제 시설 개수와 안전점수로 추천 문장을 즉시 만듭니다.
-        // recommendationReason 필드는 그대로 유지되므로 Android 응답 구조는 바뀌지 않습니다.
+        // 최종 경로 선택은 안전점수로 결정하고,
+        // Gemini는 실제 후보 경로의 거리, 시간, 안전시설 및 안전점수를
+        // 비교하여 선택된 경로의 추천 이유를 생성합니다.
+        // Gemini 호출 실패 시 GeminiRecommendationClient 내부 fallback을 사용합니다.
         // ========================================
 
         String recommendationReason =
-                createImmediateRecommendationReason(
-                        selectedCandidate
+                geminiRecommendationClient.generateRecommendationReason(
+                        selectedCandidate,
+                        candidates
                 );
 
 
