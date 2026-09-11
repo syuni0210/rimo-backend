@@ -1,5 +1,6 @@
 package com.ansim.backend.external;
 
+import io.micrometer.core.annotation.Timed;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -30,6 +31,7 @@ public class SolapiSmsService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
+    @Timed(value = "solapi.sms.duration", description = "SOLAPI 문자 발송 API 호출 시간")
     public boolean sendSms(String receiverPhone, String subject, String message) {
     try {
         String url = "https://api.solapi.com/messages/v4/send";
