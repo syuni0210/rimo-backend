@@ -1,10 +1,14 @@
 package com.ansim.backend.client;
 
 import com.ansim.backend.dto.KakaoWalkingRouteResponseDto;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.annotation.Timed;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
-import io.micrometer.core.annotation.Timed;
+
+import java.time.Duration;
 
 @Component
 public class KakaoRouteClient {
@@ -13,11 +17,16 @@ public class KakaoRouteClient {
 
     private final String restApiKey;
 
+    private final StringRedisTemplate redisTemplate;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
 
     public KakaoRouteClient(
             RestClient.Builder restClientBuilder,
             @Value("${kakao.mobility.rest-api-key}")
-            String restApiKey
+            String restApiKey,
+            StringRedisTemplate redisTemplate
     ) {
 
         this.restClient =
@@ -29,6 +38,9 @@ public class KakaoRouteClient {
 
         this.restApiKey =
                 restApiKey;
+
+        this.redisTemplate =
+                redisTemplate;
     }
 
     @Timed(value = "kakao.route.api.duration", description = "카카오 도보경로 API 호출 시간")
@@ -43,7 +55,23 @@ public class KakaoRouteClient {
             String routeMode
     ) {
 
-        return restClient
+        String cacheKey = String.format(
+                "route_cache:%.5f:%.5f:%.5f:%.5f:%s",
+                startLatitude, startLongitude,
+                destinationLatitude, destinationLongitude,
+                routeMode
+        );
+
+        try {
+            String cached = redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null) {
+                return objectMapper.readValue(cached, KakaoWalkingRouteResponseDto.class);
+            }
+        } catch (Exception e) {
+            // 캐시 읽기 실패는 무시하고 카카오 API 호출로 진행
+        }
+
+        KakaoWalkingRouteResponseDto response = restClient
                 .get()
                 .uri(
                         uriBuilder ->
@@ -111,5 +139,14 @@ public class KakaoRouteClient {
                 .body(
                         KakaoWalkingRouteResponseDto.class
                 );
+
+        try {
+            String json = objectMapper.writeValueAsString(response);
+            redisTemplate.opsForValue().set(cacheKey, json, Duration.ofHours(24));
+        } catch (Exception e) {
+            // 캐시 저장 실패해도 응답은 정상 반환
+        }
+
+        return response;
     }
 }
