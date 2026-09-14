@@ -1,5 +1,7 @@
 package com.ansim.backend.service;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import com.ansim.backend.client.DataApiClient;
 import com.ansim.backend.client.GeminiRecommendationClient;
 import com.ansim.backend.client.KakaoRouteClient;
@@ -100,11 +102,18 @@ public class AiSafeRouteService {
         } else {
 
             // 기존 Android 요청과의 호환용 fallback
-            shortestCandidate =
-                    createCandidate(
-                            request,
-                            "SHORTEST"
-                    );
+            try {
+                shortestCandidate =
+                        createCandidate(
+                                request,
+                                "SHORTEST"
+                        );
+            } catch (Exception e) {
+                throw new ResponseStatusException(
+                        HttpStatus.SERVICE_UNAVAILABLE,
+                        "일시적으로 경로 계산이 불가능합니다. 잠시 후 다시 시도해주세요."
+                );
+            }
         }
 
 
@@ -129,11 +138,18 @@ public class AiSafeRouteService {
         } else {
 
             // 기존 Android 요청과의 호환용 fallback
-            broadCandidate =
-                    createCandidate(
-                            request,
-                            "BROAD_FIRST"
-                    );
+            try {
+                broadCandidate =
+                        createCandidate(
+                                request,
+                                "BROAD_FIRST"
+                        );
+            } catch (Exception e) {
+                throw new ResponseStatusException(
+                        HttpStatus.SERVICE_UNAVAILABLE,
+                        "일시적으로 경로 계산이 불가능합니다. 잠시 후 다시 시도해주세요."
+                );
+            }
         }
 
 
