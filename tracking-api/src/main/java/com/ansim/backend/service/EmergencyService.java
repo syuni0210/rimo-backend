@@ -19,7 +19,9 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID; // [추가된 부분] UUID 임포트
 import java.util.concurrent.TimeUnit;
+
 @Service
 @RequiredArgsConstructor
 public class EmergencyService {
@@ -51,82 +53,52 @@ public class EmergencyService {
         // ========================================
         // 위치 공유 중인 친구들에게 긴급 팝업 이벤트 생성
         // ========================================
-
-        // 현재 신고자가 위치 공유를 ON 한 친구 검색
-        // key 구조:
-        // location_share:{공유자Id}:{친구Id}
-        Set<String> shareKeys =
-                redisTemplate.keys(
-                        "location_share:" + memberId + ":*"
-                );
+        Set<String> shareKeys = redisTemplate.keys("location_share:" + memberId + ":*");
 
         if (shareKeys != null) {
-
             for (String shareKey : shareKeys) {
-
-                // 실제 위치공유가 Y인 경우에만 대상
-                String isSharing =
-                        redisTemplate.opsForValue().get(shareKey);
-
-                if (!"Y".equals(isSharing)) {
-                    continue;
-                }
-
-                String[] parts =
-                        shareKey.split(":");
-
-                if (parts.length != 3) {
-                    continue;
-                }
+                String isSharing = redisTemplate.opsForValue().get(shareKey);
+                if (!"Y".equals(isSharing)) continue;
+                String[] parts = shareKey.split(":");
+                if (parts.length != 3) continue;
 
                 try {
+                    Long friendId = Long.parseLong(parts[2]);
+                    String popupKey = "emergency_popup:" + friendId + ":" + emergency.getEmergencyId();
 
-                    Long friendId =
-                            Long.parseLong(parts[2]);
-
-                    // 친구별 + 신고별 고유 이벤트
-                    String popupKey =
-                            "emergency_popup:"
-                                    + friendId
-                                    + ":"
-                                    + emergency.getEmergencyId();
-
-                    // 팝업에 필요한 최소 정보 저장
-                    redisTemplate.opsForHash().put(
-                            popupKey,
-                            "senderId",
-                            memberId.toString()
-                    );
-
-                    redisTemplate.opsForHash().put(
-                            popupKey,
-                            "senderName",
-                            memberName
-                    );
-
-                    // 앱을 사용하고 있지 않은 친구에게
-                    // 오래된 팝업이 나중에 뜨지 않도록 30초 후 자동 삭제
-                    redisTemplate.expire(
-                            popupKey,
-                            30,
-                            TimeUnit.SECONDS
-                    );
-
-                } catch (NumberFormatException ignored) {
-                }
+                    redisTemplate.opsForHash().put(popupKey, "senderId", memberId.toString());
+                    redisTemplate.opsForHash().put(popupKey, "senderName", memberName);
+                    redisTemplate.expire(popupKey, 30, TimeUnit.SECONDS);
+                } catch (NumberFormatException ignored) {}
             }
         }
 
-        String address = kakaoGeoService.toRoadAddress(lat, lng);
-        String mapUrl = kakaoGeoService.toKakaoMapUrl(lat, lng);
+        // ========================================
+        // [추가 및 수정된 부분] 보호자용 1회용 실시간 추적 링크 생성
+        // ========================================
+        
+        // 1. 1회용 난수(UUID) 생성 및 Redis 저장 (12시간 유효)
+        String trackingId = UUID.randomUUID().toString();
+        String trackingKey = "emergency_tracking:" + trackingId;
+        redisTemplate.opsForValue().set(trackingKey, memberId.toString(), 12, TimeUnit.HOURS);
 
+        // 2. Web EC2에 띄워둔 실시간 관제 웹페이지 주소 조립
+        // TODO: 아래 도메인을 현재 운영 중인 Web EC2의 실제 도메인이나 IP로 변경해주세요.
+        String trackingUrl = "https://자신의웹도메인.com/tracking.html?id=" + trackingId;
+
+        // 3. 메시지 내용에 실시간 trackingUrl 반영
+        String address = kakaoGeoService.toRoadAddress(lat, lng);
         String timeText = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
         String subject = String.format("[리모 긴급구조 요청] %s님의 긴급구조 요청!", memberName);
+        
         String message = String.format(
-                "%s님이 긴급구조를 요청했습니다.\n요청 시각: %s\n현재 위치: %s\n현재 위치 확인\n%s\n빠르게 사용자의 안전을 확인해주세요.",
-                memberName, timeText, address, mapUrl
+                "%s님이 긴급구조를 요청했습니다.\n요청 시각: %s\n초기 위치: %s\n[실시간 위치 확인 링크]\n%s\n빠르게 사용자의 안전을 확인해주세요.",
+                memberName, timeText, address, trackingUrl
         );
 
+        // ========================================
+        // 보호자에게 SMS 발송 및 DB 기록
+        // ========================================
         List<Guardian> guardians = guardianRepository.findByMemberIdAndUseYn(memberId, "Y");
         int sentCount = 0;
 
