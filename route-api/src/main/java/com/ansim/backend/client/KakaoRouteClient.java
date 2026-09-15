@@ -19,14 +19,15 @@ public class KakaoRouteClient {
 
     private final StringRedisTemplate redisTemplate;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
 
     public KakaoRouteClient(
             RestClient.Builder restClientBuilder,
             @Value("${kakao.mobility.rest-api-key}")
             String restApiKey,
-            StringRedisTemplate redisTemplate
+            StringRedisTemplate redisTemplate,
+            ObjectMapper objectMapper
     ) {
 
         this.restClient =
@@ -41,6 +42,9 @@ public class KakaoRouteClient {
 
         this.redisTemplate =
                 redisTemplate;
+
+        this.objectMapper =
+                objectMapper;
     }
 
     @Timed(value = "kakao.route.api.duration", description = "카카오 도보경로 API 호출 시간")
