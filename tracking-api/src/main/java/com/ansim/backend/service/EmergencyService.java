@@ -84,7 +84,7 @@ public class EmergencyService {
 
         // 2. Web EC2에 띄워둔 실시간 관제 웹페이지 주소 조립
         // TODO: 아래 도메인을 현재 운영 중인 Web EC2의 실제 도메인이나 IP로 변경해주세요.
-        String trackingUrl = "https://자신의웹도메인.com/tracking.html?id=" + trackingId;
+        String trackingUrl = "https://www.rimo-app.com/tracking.html?id=" + trackingId;
 
         // 3. 메시지 내용에 실시간 trackingUrl 반영
         String address = kakaoGeoService.toRoadAddress(lat, lng);
