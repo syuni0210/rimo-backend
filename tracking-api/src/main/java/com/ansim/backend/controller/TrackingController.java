@@ -74,17 +74,4 @@ public class TrackingController {
         );
         return ResponseEntity.ok().build();
     }
-// ========================================
-    // 긴급 웹페이지에서 UUID로 실시간 위치 조회
-    // ========================================
-    @CrossOrigin("*") //  1. 추가: 웹에서 접근할 수 있도록 허용
-    @GetMapping("/emergency/location/{uuid}") //  2. 수정: 앞에 /emergency 를 꼭 붙여주세요! (프론트엔드 주소와 일치시킴)
-    public ResponseEntity<java.util.Map<String, Double>> getEmergencyLocationByUuid(@PathVariable String uuid) {
-        java.util.Map<String, Double> location = trackingService.getEmergencyLocation(uuid);
-        
-        if (location == null) {
-            return ResponseEntity.notFound().build(); // 데이터가 없으면 404 (만료 처리)
-        }
-        return ResponseEntity.ok(location);
-    }
 }
