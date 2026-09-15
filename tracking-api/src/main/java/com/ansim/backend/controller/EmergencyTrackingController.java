@@ -14,29 +14,29 @@ public class EmergencyTrackingController {
 
     private final StringRedisTemplate redisTemplate;
 
-    // 보호자가 받은 문자의 링크(웹페이지)에서 1초마다 호출할 API
     @CrossOrigin("*")
     @GetMapping("/location/{trackingId}")
     public ResponseEntity<?> getEmergencyLocation(@PathVariable String trackingId) {
         
-        // 1. UUID 열쇠가 유효한지(12시간 이내인지) 확인
+        // 1. UUID -> memberId 검증 (이동기 님이 의도하신 보안 로직)
         String memberIdStr = redisTemplate.opsForValue().get("emergency_tracking:" + trackingId);
-        
         if (memberIdStr == null) {
             return ResponseEntity.status(403).body(Map.of("error", "만료되거나 유효하지 않은 긴급 추적 링크입니다."));
         }
 
-        // 2. 이동기 님이 LocationShareService에서 저장하시는 키 이름 그대로 조회!
+        // 2. 해당 회원의 실시간 위치 조회
         String locationKey = "member_location:" + memberIdStr; 
+        Object latObj = redisTemplate.opsForHash().get(locationKey, "lat");
+        Object lngObj = redisTemplate.opsForHash().get(locationKey, "lng");
 
-        Object lat = redisTemplate.opsForHash().get(locationKey, "lat");
-        Object lng = redisTemplate.opsForHash().get(locationKey, "lng");
-
-        if (lat == null || lng == null) {
+        if (latObj == null || lngObj == null) {
             return ResponseEntity.status(404).body(Map.of("error", "현재 위치 정보를 수신 대기 중입니다."));
         }
 
-        // 3. 토글 ON/OFF 검사 로직(Bypass) 없이 무조건 최신 위치 반환
+        //  [핵심 해결] 문자열을 확실한 '숫자(Double)'로 강제 변환하여 카카오맵 에러 원천 차단!
+        Double lat = Double.parseDouble(latObj.toString());
+        Double lng = Double.parseDouble(lngObj.toString());
+
         return ResponseEntity.ok(Map.of(
                 "lat", lat,
                 "lng", lng
