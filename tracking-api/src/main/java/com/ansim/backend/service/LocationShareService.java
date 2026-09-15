@@ -28,6 +28,6 @@ public class LocationShareService {
         
         // [수정된 부분] 안드로이드에서 1초마다 호출하지만, 
         // 통신 지연(핑 튐 현상)을 대비해 데이터는 5초간 살려둡니다.
-        redisTemplate.expire(key, Duration.ofSeconds(5));
+        redisTemplate.expire(key, Duration.ofSeconds(1800));
     }
 }
