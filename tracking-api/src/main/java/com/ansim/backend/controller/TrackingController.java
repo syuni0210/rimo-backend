@@ -74,4 +74,16 @@ public class TrackingController {
         );
         return ResponseEntity.ok().build();
     }
+    // ========================================
+    // 긴급 웹페이지에서 UUID로 실시간 위치 조회
+    // ========================================
+    @GetMapping("/location/{uuid}")
+    public ResponseEntity<java.util.Map<String, Double>> getEmergencyLocationByUuid(@PathVariable String uuid) {
+        java.util.Map<String, Double> location = trackingService.getEmergencyLocation(uuid);
+        
+        if (location == null) {
+            return ResponseEntity.notFound().build(); // 데이터가 없으면 404 (만료 처리)
+        }
+        return ResponseEntity.ok(location);
+    }
 }

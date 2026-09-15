@@ -7,9 +7,12 @@ import org.springframework.stereotype.Service;
 import com.ansim.backend.dto.SharingFriendResponse;
 import com.ansim.backend.dto.EmergencyPopupResponse;
 import com.ansim.backend.repository.TrackingRepository;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.Map;
+import java.util.HashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -113,9 +116,7 @@ public class TrackingService {
         return Boolean.TRUE.equals(deleted);
     }
 
-// ... 기존 getFriendLocation 메서드 유지 ...
-
-     public List<SharingFriendResponse> getSharingFriendsLocations(Long requesterId) {
+    public List<SharingFriendResponse> getSharingFriendsLocations(Long requesterId) {
         List<SharingFriendResponse> result = new ArrayList<>();
         
         Set<String> keys = redisTemplate.keys("location_share:*:" + requesterId);
@@ -151,31 +152,56 @@ public class TrackingService {
             }
         }
         return result;
-     }
+    }
 
-     // ========================================
-     // 내가 위치를 공유 중인 친구 수 조회
-     // (안심경로 화면 - "공유 대상 N명" 표시용)
-     // ========================================
+    // ========================================
+    // 내가 위치를 공유 중인 친구 수 조회
+    // (안심경로 화면 - "공유 대상 N명" 표시용)
+    // ========================================
+    public int getSharingCount(Long memberId) {
 
-     public int getSharingCount(Long memberId) {
+        Set<String> keys = redisTemplate.keys("location_share:" + memberId + ":*");
 
-         Set<String> keys = redisTemplate.keys("location_share:" + memberId + ":*");
+        if (keys == null || keys.isEmpty()) {
+            return 0;
+        }
 
-         if (keys == null || keys.isEmpty()) {
-             return 0;
-         }
+        int count = 0;
 
-         int count = 0;
+        for (String key : keys) {
+            String isSharing = redisTemplate.opsForValue().get(key);
+            if ("Y".equals(isSharing)) {
+                count++;
+            }
+        }
 
-         for (String key : keys) {
-             String isSharing = redisTemplate.opsForValue().get(key);
-             if ("Y".equals(isSharing)) {
-                 count++;
-             }
-         }
+        return count;
+    }
 
-         return count;
-     }
+    // ========================================
+    // 긴급 웹페이지에서 UUID로 실시간 위치 조회
+    // ========================================
+    public Map<String, Double> getEmergencyLocation(String uuid) {
+        // 1. Redis에서 UUID로 memberId(예: "19") 꺼내기
+        String memberIdStr = redisTemplate.opsForValue().get("emergency_tracking:" + uuid);
+        
+        if (memberIdStr == null) {
+            return null; // UUID가 만료되었거나 없으면 null 반환
+        }
+
+        // 2. memberId로 실시간 위도/경도 꺼내기
+        Object latObj = redisTemplate.opsForHash().get("member_location:" + memberIdStr, "lat");
+        Object lngObj = redisTemplate.opsForHash().get("member_location:" + memberIdStr, "lng");
+
+        if (latObj == null || lngObj == null) {
+            return null;
+        }
+
+        // 3. 웹페이지가 그리기 좋게 Map으로 포장해서 반환
+        Map<String, Double> result = new HashMap<>();
+        result.put("lat", Double.parseDouble(latObj.toString()));
+        result.put("lng", Double.parseDouble(lngObj.toString()));
+        
+        return result;
+    }
 }
-
