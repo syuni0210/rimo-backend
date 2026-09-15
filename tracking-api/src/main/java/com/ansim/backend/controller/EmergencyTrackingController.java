@@ -15,6 +15,7 @@ public class EmergencyTrackingController {
     private final StringRedisTemplate redisTemplate;
 
     // 보호자가 받은 문자의 링크(웹페이지)에서 1초마다 호출할 API
+    @CrossOrigin("*")
     @GetMapping("/location/{trackingId}")
     public ResponseEntity<?> getEmergencyLocation(@PathVariable String trackingId) {
         
