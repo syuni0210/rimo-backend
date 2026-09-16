@@ -3,9 +3,11 @@ package com.ansim.backend.client;
 import com.ansim.backend.dto.RouteCandidateDto;
 import com.ansim.backend.dto.SafetyFacilitySummaryDto;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import io.micrometer.core.annotation.Timed;
@@ -16,11 +18,13 @@ public class GeminiRecommendationClient {
     private final RestClient restClient;
     private final String apiKey;
     private final String model;
+    private final StringRedisTemplate redisTemplate;
 
     public GeminiRecommendationClient(
             RestClient.Builder builder,
             @Value("${gemini.api-key}") String apiKey,
-            @Value("${gemini.model}") String model
+            @Value("${gemini.model}") String model,
+            StringRedisTemplate redisTemplate
     ) {
         this.restClient = builder
                 .baseUrl("https://generativelanguage.googleapis.com")
@@ -28,12 +32,36 @@ public class GeminiRecommendationClient {
 
         this.apiKey = apiKey;
         this.model = model;
+        this.redisTemplate = redisTemplate;
     }
+
     @Timed(value = "gemini.recommendation.duration", description = "Gemini AI 추천 문구 생성 시간")
     public String generateRecommendationReason(
             RouteCandidateDto selectedCandidate,
             List<RouteCandidateDto> candidates
     ) {
+
+        // ========================================
+        // 캐시 키 생성 (선택된 경로의 특성 기준)
+        // ========================================
+
+        String cacheKey =
+                buildCacheKey(
+                        selectedCandidate
+                );
+
+        // ========================================
+        // 캐시 확인 (있으면 Gemini 호출 없이 즉시 반환)
+        // ========================================
+
+        try {
+            String cached = redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null) {
+                return cached;
+            }
+        } catch (Exception e) {
+            // 캐시 읽기 실패는 무시하고 Gemini 호출로 진행
+        }
 
         String prompt =
                 buildPrompt(
@@ -56,6 +84,8 @@ public class GeminiRecommendationClient {
                                 )
                         )
                 );
+
+        String reason;
 
         try {
 
@@ -86,12 +116,12 @@ public class GeminiRecommendationClient {
                     result == null ||
                     result.isBlank()
             ) {
-                return createFallbackReason(
+                reason = createFallbackReason(
                         selectedCandidate
                 );
+            } else {
+                reason = result.trim();
             }
-
-            return result.trim();
 
         } catch (Exception e) {
 
@@ -100,10 +130,40 @@ public class GeminiRecommendationClient {
                             + e.getMessage()
             );
 
-            return createFallbackReason(
+            reason = createFallbackReason(
                     selectedCandidate
             );
         }
+
+        // ========================================
+        // 결과를 캐시에 저장 (TTL 24시간)
+        // ========================================
+
+        try {
+            redisTemplate.opsForValue().set(cacheKey, reason, Duration.ofHours(24));
+        } catch (Exception e) {
+            // 캐시 저장 실패해도 응답은 정상 반환
+        }
+
+        return reason;
+    }
+
+    private String buildCacheKey(RouteCandidateDto selectedCandidate) {
+        SafetyFacilitySummaryDto f = selectedCandidate.getFacilities();
+
+        return String.format(
+                "gemini_cache:%s:%d:%d:%.1f:%d:%d:%d:%d:%d:%d",
+                selectedCandidate.getRouteMode(),
+                selectedCandidate.getDistanceMeter(),
+                selectedCandidate.getTimeSecond(),
+                selectedCandidate.getSafetyScore(),
+                f.getCctvCount(),
+                f.getEmergencyBellCount(),
+                f.getPoliceCount(),
+                f.getSafeHouseCount(),
+                f.getSecurityLightCount(),
+                f.getSmartLightCount()
+        );
     }
 
     private String buildPrompt(
