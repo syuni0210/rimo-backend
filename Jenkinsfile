@@ -204,23 +204,23 @@ pipeline {
                 sh '''
                     kubectl rollout status deployment/auth-api \
                       -n "$K8S_NAMESPACE" \
-                      --timeout=180s
+                      --timeout=300s
 
                     kubectl rollout status deployment/member-api \
                       -n "$K8S_NAMESPACE" \
-                      --timeout=180s
+                      --timeout=300s
 
                     kubectl rollout status deployment/tracking-api \
                       -n "$K8S_NAMESPACE" \
-                      --timeout=180s
+                      --timeout=300s
 
                     kubectl rollout status deployment/route-api \
                       -n "$K8S_NAMESPACE" \
-                      --timeout=180s
+                      --timeout=300s
 
                     kubectl rollout status deployment/data-api \
                       -n "$K8S_NAMESPACE" \
-                      --timeout=180s
+                      --timeout=300s
                 '''
             }
         }
